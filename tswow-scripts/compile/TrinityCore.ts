@@ -243,7 +243,7 @@ export namespace TrinityCore {
                 +` -DOPENSSL_INCLUDE_DIR="${wfs.absPath(openssl)}/include"`
                 +` -DOPENSSL_ROOT_DIR="${wfs.absPath(openssl)}"`
                 +` -DBOOST_ROOT="${bpaths.boost.boost_1_82_0.abs().get()}"`
-                +` -DTRACY_ENABLE="${tracyEnabled?'ON':'OFF'}"`
+                +` -DTRACY_ENABLE="OFF"`
                 +` -DBUILD_SHARED_LIBS="ON"`
                 +` -DTRACY_TIMER_FALLBACK="${!Args.hasFlag('tracy-better-timer',[process.argv,args1])?'ON':'OFF'}"`
                 +` -DBUILD_TESTING="OFF"`
@@ -264,9 +264,11 @@ export namespace TrinityCore {
                 +` -DCMAKE_INSTALL_PREFIX=${relInstall}`
                 +` -DCMAKE_C_COMPILER=/usr/bin/clang`
                 +` -DCMAKE_CXX_COMPILER=/usr/bin/clang++`
+                +` -DCMAKE_C_COMPILER_LAUNCHER=ccache`
+                +` -DCMAKE_CXX_COMPILER_LAUNCHER=ccache`
                 +` -DBUILD_SHARED_LIBS="ON"`
                 +` -DBUILD_TESTING="OFF"`
-                +` -DTRACY_ENABLED="${Args.hasFlag('tracy',[process.argv,args1])}"`
+                +` -DTRACY_ENABLE="OFF"`
                 +` -DTRACY_TIMER_FALLBACK="${!Args.hasFlag('tracy-timer-fallback',[process.argv,args1])?'ON':'OFF'}"`
                 +` -DWITH_WARNINGS=1`
                 +` -DSCRIPTS=${scripts}`;

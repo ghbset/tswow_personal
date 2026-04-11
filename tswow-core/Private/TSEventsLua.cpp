@@ -111,6 +111,63 @@ void TSLua::load_events(sol::state& state)
     LUA_HANDLE(player_events, PlayerEvents, OnGlyphInitForLevel);
     LUA_HANDLE(player_events, PlayerEvents, OnReputationPriceDiscount);
 
+    // @duskhaven-port-begin PlayerEvents
+    LUA_HANDLE(player_events, PlayerEvents, OnCalcAgilityCritBonus);
+    LUA_HANDLE(player_events, PlayerEvents, OnCalcIntellectCritBonus);
+    LUA_HANDLE(player_events, PlayerEvents, OnCalcBlockValueFlat);
+    LUA_HANDLE(player_events, PlayerEvents, OnCalcBlockValuePctMod);
+    LUA_HANDLE(player_events, PlayerEvents, OnCalcDodgeFromAgility);
+    LUA_HANDLE(player_events, PlayerEvents, OnCalcParryFromStr);
+    LUA_HANDLE(player_events, PlayerEvents, OnUpdateStats);
+    LUA_HANDLE(player_events, PlayerEvents, ScriptedArmorPenMod);
+    LUA_HANDLE(player_events, PlayerEvents, OnSuccessfulInterrupt);
+    LUA_HANDLE(player_events, PlayerEvents, OnCustomScriptedDamageDoneMod); // After all custom mods in SpellDamagePctDone and Weapon Damage are calced by core
+    LUA_HANDLE(player_events, PlayerEvents, OnCustomScriptedDamageTakenMod);
+    LUA_HANDLE(player_events, PlayerEvents, OnCustomScriptedCritMod);
+    LUA_HANDLE(player_events, PlayerEvents, OnCustomScriptedCritDamageMod);
+    LUA_HANDLE(player_events, PlayerEvents, OnCustomScriptedCritHealingMod);
+    LUA_HANDLE(player_events, PlayerEvents, OnCustomScriptedHealMod);
+    LUA_HANDLE(player_events, PlayerEvents, OnCustomScriptedAutoattackMod);
+    LUA_HANDLE(player_events, PlayerEvents, OnCustomScriptedAutoattackDamageTakenMod);
+    LUA_HANDLE(player_events, PlayerEvents, OnPowerSpent);
+    LUA_HANDLE(player_events, PlayerEvents, OnEnchantTriggered);
+    LUA_HANDLE(player_events, PlayerEvents, OnUpdateSpellHealing);
+    LUA_HANDLE(player_events, PlayerEvents, OnUpdateSpellDamage);
+    LUA_HANDLE(player_events, PlayerEvents, OnRunesSpent);
+    LUA_HANDLE(player_events, PlayerEvents, OnPowerChanged);
+    LUA_HANDLE(player_events, PlayerEvents, BeforeModifyPower);
+    LUA_HANDLE(player_events, PlayerEvents, OnUpdateSpeedRating);
+    LUA_HANDLE(player_events, PlayerEvents, OnUpdateLeechRating);
+    LUA_HANDLE(player_events, PlayerEvents, OnUpdateAvoidanceRating);
+    LUA_HANDLE(player_events, PlayerEvents, OnUpdateMasteryRating);
+    LUA_HANDLE(player_events, PlayerEvents, GetRatingDiminishing);
+    LUA_HANDLE(player_events, PlayerEvents, OnUpdateThornsRating);
+    LUA_HANDLE(player_events, PlayerEvents, OnCustomStatAura);
+    LUA_HANDLE(player_events, PlayerEvents, OnCalcFallDamage);
+    LUA_HANDLE(player_events, PlayerEvents, GainComboPoint);
+    LUA_HANDLE(player_events, PlayerEvents, ClearComboPoints);
+    LUA_HANDLE(player_events, PlayerEvents, OnEquipMainhandWeapon);
+    LUA_HANDLE(player_events, PlayerEvents, OnUnequipMainhandWeapon);
+    LUA_HANDLE(player_events, PlayerEvents, OnEquipOffhandWeapon);
+    LUA_HANDLE(player_events, PlayerEvents, OnUnequipOffhandWeapon);
+    LUA_HANDLE(player_events, PlayerEvents, OnActionButtonSet);
+    LUA_HANDLE(player_events, PlayerEvents, OnActionButtonDelete);
+    LUA_HANDLE(player_events, PlayerEvents, CanLoot);
+    LUA_HANDLE(player_events, PlayerEvents, CanRoll);
+    LUA_HANDLE(player_events, PlayerEvents, ScaleRegenByHaste);
+    LUA_HANDLE(player_events, PlayerEvents, OnUpdateHasteRating);
+    LUA_HANDLE(player_events, PlayerEvents, LoadPresetAmmo);
+    LUA_HANDLE(player_events, PlayerEvents, OnTempEnchant);
+    LUA_HANDLE(player_events, PlayerEvents, CheckLoadoutString);
+    LUA_HANDLE(player_events, PlayerEvents, CheckValidRaceClass);
+    LUA_HANDLE(player_events, PlayerEvents, OnRunicGainedFromSpell);
+    LUA_HANDLE(player_events, PlayerEvents, OnLossOfControl);
+    LUA_HANDLE(player_events, PlayerEvents, OnControlRegained);
+    LUA_HANDLE(player_events, PlayerEvents, IsCriticalBlock);
+    LUA_HANDLE(player_events, PlayerEvents, OnComboPointsSpent);
+    LUA_HANDLE(player_events, PlayerEvents, CompletedQuestAtMaxLevel);
+    // @duskhaven-port-end PlayerEvents
+
     auto account_events = state.new_usertype<TSEvents::AccountEvents>("AccountEvents");
     LUA_HANDLE(account_events, AccountEvents, OnAccountLogin);
     LUA_HANDLE(account_events, AccountEvents, OnFailedAccountLogin);
@@ -158,6 +215,16 @@ void TSLua::load_events(sol::state& state)
     LUA_HANDLE(unit_events, UnitEvents, OnEnterCombatWith);
     LUA_HANDLE(unit_events, UnitEvents, OnExitCombatWith);
     LUA_HANDLE(unit_events, UnitEvents, OnSetTarget);
+
+    // @duskhaven-port-begin UnitEvents
+    LUA_HANDLE(unit_events, UnitEvents, OnCalcMissChanceAgainst);
+    LUA_HANDLE(unit_events, UnitEvents, OnDamageDealt);
+    LUA_HANDLE(unit_events, UnitEvents, OnDamageTaken);
+    LUA_HANDLE(unit_events, UnitEvents, OnRageGainedViaAttack);
+    LUA_HANDLE(unit_events, UnitEvents, OnCustomDamageTaken);
+    LUA_HANDLE(unit_events, UnitEvents, OnUpdateDisplayPower);
+    LUA_HANDLE(unit_events, UnitEvents, OnHandleShapeshiftPower);
+    // @duskhaven-port-end UnitEvents
 
     auto spell_events = state.new_usertype<TSEvents::SpellEvents>("SpellEvents");
     LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnCast);
@@ -213,6 +280,31 @@ void TSLua::load_events(sol::state& state)
     LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnObjectAreaTargetSelect);
     LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnObjectTargetSelect);
     LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnOnResistAbsorbCalculate);
+
+    // @duskhaven-port-begin SpellEvents
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnCalcProcChanceEarly);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnCalcProcChanceLate);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnHeal);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnCustomMechanicMaskDamage);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnSuccessfulInterrupt);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnCalcSpellDuration);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, CanAuraBeBrokenBySpell);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnJumpStart);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnJumpEnd);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnCastCancelled);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnSpellCastFinished);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, CanMoveWhileChanneling);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnCheckGCDCategory);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnEnergizeBySpell);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnPrepared);
+    LUA_HANDLE(spell_events, SpellEvents, OnLearn);
+    LUA_HANDLE(spell_events, SpellEvents, OnUnlearn);
+    LUA_HANDLE(spell_events, SpellEvents, OnAuraRemoved);
+    LUA_HANDLE(spell_events, SpellEvents, OnSuccessfulDispel);
+    LUA_HANDLE(spell_events, SpellEvents, OnCooldownFinished);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnDynObjectRemove);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnPAARemoved);
+    // @duskhaven-port-end SpellEvents
 
     auto creature_events = state.new_usertype<TSEvents::CreatureEvents>("CreatureEvents");
     LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnMoveInLOS);
@@ -271,6 +363,25 @@ void TSLua::load_events(sol::state& state)
     LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnCalcBaseGain);
     LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnMovementInform);
 
+    // @duskhaven-port-begin CreatureEvents
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnJustExitedCombat);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnTotemSummoned);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnTotemDespawn);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnDamageTaken);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnPetSummoned);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnPetDespawn);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnPetUpdateResistance);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnPetUpdateArmor);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnPetUpdateMaxHealth);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnPetUpdateMaxPower);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnPetUpdateAttackPowerDamage);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnPetUpdateDamagePhysical);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnPetUpdateSpellPower);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnPetUpdateStat);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, InitPetSpells);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnGuardianUpdateDamagePhysical);
+    // @duskhaven-port-end CreatureEvents
+
     auto gameobject_events = state.new_usertype<TSEvents::GameObjectEvents>("GameObjectEvents");
     LUA_MAPPED_HANDLE(gameobject_events, GameObjectEvents, OnUpdate);
     LUA_MAPPED_HANDLE(gameobject_events, GameObjectEvents, OnDialogStatus);
@@ -289,6 +400,10 @@ void TSLua::load_events(sol::state& state)
     LUA_MAPPED_HANDLE(gameobject_events, GameObjectEvents, OnQuestReward);
     LUA_MAPPED_HANDLE(gameobject_events, GameObjectEvents, OnGenerateLoot);
     LUA_MAPPED_HANDLE(gameobject_events, GameObjectEvents, OnGenerateFishLoot);
+
+    // @duskhaven-port-begin GameObjectEvents
+    LUA_MAPPED_HANDLE(gameobject_events, GameObjectEvents, OnTrapTriggered);
+    // @duskhaven-port-end GameObjectEvents
 
     auto map_events = state.new_usertype<TSEvents::MapEvents>("MapEvents");
     LUA_MAPPED_HANDLE(map_events, MapEvents, OnCreate);
@@ -351,6 +466,14 @@ void TSLua::load_events(sol::state& state)
     LUA_MAPPED_HANDLE(instance_events, InstanceEvents, OnLoadDoorData);
     LUA_MAPPED_HANDLE(instance_events, InstanceEvents, OnLoadObjectData);
 
+    // @duskhaven-port-begin InstanceEvents
+    LUA_MAPPED_HANDLE(instance_events, InstanceEvents, OnRaidBossKilled);
+    LUA_MAPPED_HANDLE(instance_events, InstanceEvents, OnDungeonCompleted);
+    LUA_MAPPED_HANDLE(instance_events, InstanceEvents, OnUpdateCriteria);
+    LUA_MAPPED_HANDLE(instance_events, InstanceEvents, ResetInstance);
+    LUA_MAPPED_HANDLE(instance_events, InstanceEvents, HandleRelease);
+    // @duskhaven-port-end InstanceEvents
+
     auto item_events = state.new_usertype<TSEvents::ItemEvents>("ItemEvents");
     LUA_MAPPED_HANDLE(item_events, ItemEvents, OnUse);
     LUA_MAPPED_HANDLE(item_events, ItemEvents, OnExpire);
@@ -372,6 +495,10 @@ void TSLua::load_events(sol::state& state)
     LUA_MAPPED_HANDLE(item_events, ItemEvents, OnTakenAsLoot);
     LUA_MAPPED_HANDLE(item_events, ItemEvents, OnCalculateFeralAttackPower);
 
+    // @duskhaven-port-begin ItemEvents
+    LUA_MAPPED_HANDLE(item_events, ItemEvents, OnItemCrafted);
+    // @duskhaven-port-end ItemEvents
+
     auto quest_events = state.new_usertype<TSEvents::QuestEvents>("QuestEvents");
     LUA_MAPPED_HANDLE(quest_events, QuestEvents, OnAccept);
     LUA_MAPPED_HANDLE(quest_events, QuestEvents, OnReward);
@@ -379,6 +506,10 @@ void TSLua::load_events(sol::state& state)
     LUA_MAPPED_HANDLE(quest_events, QuestEvents, OnObjectiveProgress);
     LUA_MAPPED_HANDLE(quest_events, QuestEvents, OnStatusChanged);
     LUA_MAPPED_HANDLE(quest_events, QuestEvents, OnSpellFinish);
+
+    // @duskhaven-port-begin QuestEvents
+    LUA_MAPPED_HANDLE(quest_events, QuestEvents, OnQuestRewardItem);
+    // @duskhaven-port-end QuestEvents
 
     auto area_trigger_events = state.new_usertype<TSEvents::AreaTriggerEvents>("AreaTriggerEvents");
     LUA_MAPPED_HANDLE(area_trigger_events, AreaTriggerEvents, OnTrigger);
@@ -397,6 +528,10 @@ void TSLua::load_events(sol::state& state)
 
     auto custompacket_events = state.new_usertype<TSEvents::CustomPacketEvents>("CustomPacketEvents");
     LUA_MAPPED_HANDLE(custompacket_events, CustomPacketEvents, OnReceive);
+
+    // @duskhaven-port-begin CustomPacketEvents
+    LUA_MAPPED_HANDLE(custompacket_events, CustomPacketEvents, OnReceiveNotInWorld);
+    // @duskhaven-port-end CustomPacketEvents
 
     auto worldpacket_events = state.new_usertype<TSEvents::WorldPacketEvents>("WorldPacketEvents");
     LUA_MAPPED_HANDLE(worldpacket_events, WorldPacketEvents, OnReceive);
