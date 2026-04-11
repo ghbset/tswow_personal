@@ -1381,3 +1381,51 @@ TSNumber<float> TSCreature::GetThreat(TSUnit target, bool includeOffline)
     return creature->GetThreatManager().GetThreat(target, includeOffline);
 }
 
+
+// @duskhaven-port-begin TSCreature
+#include "TemporarySummon.h"
+#include "Pet.h"
+#include "ScriptedCreature.h"
+
+void TSCreature::SetVirtualItem(uint32 slot, uint32 itemId)
+{
+    creature->SetVirtualItem(slot, itemId);
+}
+
+void TSCreature::SetCorpseDelay(uint32 delay, bool ignoreCorpseDecayRatio)
+{
+    creature->SetCorpseDelay(delay, ignoreCorpseDecayRatio);
+}
+
+void TSCreature::SetCombatMovement(bool allowMovement)
+{
+    if (CreatureAI* ai = creature->AI())
+    {
+        if (ScriptedAI* scriptedAI = dynamic_cast<ScriptedAI*>(ai))
+            scriptedAI->SetCombatMovement(allowMovement);
+    }
+}
+
+void TSCreature::LearnPetSpell(uint32 spell)
+{
+    if (creature->IsPet())
+    {
+        if (Pet* asPet = const_cast<Pet*>(creature->ToPet()))
+            asPet->learnSpell(spell);
+    }
+}
+
+// ExtendDurationIfAble skipped: base TC's TempSummon has no ExtendDuration method.
+// Would require a TC core addition to TempSummon (e.g., setter on m_timer).
+
+TSNumber<uint32> TSCreature::GetFirstSpell()
+{
+    return creature->m_spells[0];
+}
+
+void TSCreature::DoSpellAttackIfReady(uint32 spell)
+{
+    if (CreatureAI* ai = creature->AI())
+        ai->DoSpellAttackIfReady(spell);
+}
+// @duskhaven-port-end TSCreature

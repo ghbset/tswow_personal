@@ -146,6 +146,14 @@ public:
 
     TSNumber<float> GetThreat(TSUnit target, bool include_offline = false);
 
+    // @duskhaven-port
+    void SetVirtualItem(uint32 slot, uint32 itemId);
+    void SetCorpseDelay(uint32 delay, bool ignoreCorpseDecayRatio = false);
+    void SetCombatMovement(bool allowMovement);
+    void LearnPetSpell(uint32 spell);
+    TSNumber<uint32> GetFirstSpell();
+    void DoSpellAttackIfReady(uint32 spell);
+
 private:
     TSLua::Array<TSUnit> LGetThreatList();
     friend class TSLua;
