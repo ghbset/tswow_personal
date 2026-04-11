@@ -2616,10 +2616,9 @@ TSNumber<uint32> TSUnit::GetCreatePowerValue(int type)
     return unit->GetCreatePowerValue(power);
 }
 
-TSNumber<uint32> TSUnit::GetDiseasesByCaster(TSGUID /*casterGUID*/, bool /*remove*/)
+TSNumber<uint32> TSUnit::GetDiseasesByCaster(TSGUID casterGUID, bool remove)
 {
-    // Duskhaven added a Unit::GetDiseasesByCaster helper; not present in base TC.
-    return 0u;
+    return unit->GetDiseasesByCaster(casterGUID.asGUID(), remove);
 }
 
 TSNumber<float> TSUnit::GetFlatModifierValue(uint8 unitMod, uint8 modifierType) const
