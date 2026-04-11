@@ -1889,7 +1889,7 @@ declare interface TSPlayer extends TSUnit, TSDBJsonProvider {
      * @param uint32 xp : experience to give
      * @param [Unit] victim = nil
      */
-    GiveXP(xp : uint32,victim : TSUnit) : void
+    GiveXP(xp : uint32,victim : TSUnit | null) : void
 
     /**
      * Toggle the [Player]s 'Do Not Disturb' flag
@@ -2412,6 +2412,113 @@ declare class TSEntityProvider {
 
     GetRawFloat(offset: uint8): TSNumber<float>
     GetRawDouble(offset: uint8): TSNumber<double>
+
+    // Stat Override System
+    SetStatOverride(stat: uint8, value: int32): void
+    GetStatOverride(stat: uint8): TSNumber<int32>
+    HasStatOverride(stat: uint8): bool
+    ClearStatOverride(stat: uint8): void
+    ClearAllStatOverrides(): void
+
+    SetMaxHealthOverride(value: int32): void
+    GetMaxHealthOverride(): TSNumber<int32>
+    HasMaxHealthOverride(): bool
+    ClearMaxHealthOverride(): void
+
+    SetMaxManaOverride(value: int32): void
+    GetMaxManaOverride(): TSNumber<int32>
+    HasMaxManaOverride(): bool
+    ClearMaxManaOverride(): void
+
+    SetManaRegenOverride(value: float): void
+    GetManaRegenOverride(): TSNumber<float>
+    HasManaRegenOverride(): bool
+    ClearManaRegenOverride(): void
+
+    SetAttackPowerOverride(value: int32): void
+    GetAttackPowerOverride(): TSNumber<int32>
+    HasAttackPowerOverride(): bool
+    ClearAttackPowerOverride(): void
+
+    SetRangedAttackPowerOverride(value: int32): void
+    GetRangedAttackPowerOverride(): TSNumber<int32>
+    HasRangedAttackPowerOverride(): bool
+    ClearRangedAttackPowerOverride(): void
+
+    SetMeleeCritOverride(value: float): void
+    GetMeleeCritOverride(): TSNumber<float>
+    HasMeleeCritOverride(): bool
+    ClearMeleeCritOverride(): void
+
+    SetRangedCritOverride(value: float): void
+    GetRangedCritOverride(): TSNumber<float>
+    HasRangedCritOverride(): bool
+    ClearRangedCritOverride(): void
+
+    SetSpellCritOverride(school: uint8, value: float): void
+    GetSpellCritOverride(school: uint8): TSNumber<float>
+    HasSpellCritOverride(school: uint8): bool
+    ClearSpellCritOverride(school: uint8): void
+
+    SetSpellPowerOverride(value: int32): void
+    GetSpellPowerOverride(): TSNumber<int32>
+    HasSpellPowerOverride(): bool
+    ClearSpellPowerOverride(): void
+
+    SetHealingPowerOverride(value: int32): void
+    GetHealingPowerOverride(): TSNumber<int32>
+    HasHealingPowerOverride(): bool
+    ClearHealingPowerOverride(): void
+
+    SetArmorOverride(value: int32): void
+    GetArmorOverride(): TSNumber<int32>
+    HasArmorOverride(): bool
+    ClearArmorOverride(): void
+
+    SetResistanceOverride(school: uint8, value: int32): void
+    GetResistanceOverride(school: uint8): TSNumber<int32>
+    HasResistanceOverride(school: uint8): bool
+    ClearResistanceOverride(school: uint8): void
+
+    SetBlockOverride(value: float): void
+    GetBlockOverride(): TSNumber<float>
+    HasBlockOverride(): bool
+    ClearBlockOverride(): void
+
+    SetDodgeOverride(value: float): void
+    GetDodgeOverride(): TSNumber<float>
+    HasDodgeOverride(): bool
+    ClearDodgeOverride(): void
+
+    SetParryOverride(value: float): void
+    GetParryOverride(): TSNumber<float>
+    HasParryOverride(): bool
+    ClearParryOverride(): void
+
+    SetMeleeHitOverride(value: float): void
+    GetMeleeHitOverride(): TSNumber<float>
+    HasMeleeHitOverride(): bool
+    ClearMeleeHitOverride(): void
+
+    SetRangedHitOverride(value: float): void
+    GetRangedHitOverride(): TSNumber<float>
+    HasRangedHitOverride(): bool
+    ClearRangedHitOverride(): void
+
+    SetSpellHitOverride(value: float): void
+    GetSpellHitOverride(): TSNumber<float>
+    HasSpellHitOverride(): bool
+    ClearSpellHitOverride(): void
+
+    SetShieldBlockValueOverride(value: int32): void
+    GetShieldBlockValueOverride(): TSNumber<int32>
+    HasShieldBlockValueOverride(): bool
+    ClearShieldBlockValueOverride(): void
+
+    SetExpertiseOverride(value: int32): void
+    GetExpertiseOverride(): TSNumber<int32>
+    HasExpertiseOverride(): bool
+    ClearExpertiseOverride(): void
 }
 
 declare class TSTimer {
@@ -8051,6 +8158,7 @@ declare namespace _hidden {
         OnSendMail(callback: (player: TSPlayer, draft: TSMailDraft, delay: TSMutableNumber<uint32>)=>void);
         OnGenerateItemLoot(callback: (player: TSPlayer, item: TSItem, loot: TSLoot, type: uint32)=>void);
         OnLootCorpse(callback: (player: TSPlayer, corpse: TSCorpse)=>void);
+        OnCraftItem(callback: (player: TSPlayer, item: TSItem, spell: TSSpellInfo, skillId: uint32, difficulty: uint32)=>void);
         OnTradeCompleted(callback: (me: TSPlayer, him: TSPlayer, myItems: TSArray<TSItem>, hisItems: TSArray<TSItem>, myGold: uint32, hisGold: uint32)=>void);
 
         OnUpdateDodgePercentage(callback: (

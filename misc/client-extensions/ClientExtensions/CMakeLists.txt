@@ -51,6 +51,7 @@ SET(CLIENT_EXTENSIONS_CPP
     Characters/CharacterFixes.cpp
     CustomLua/SpellFunctions.cpp
     Tooltip/SpellTooltipExtensions.cpp
+    CMapOverrides.cpp
 )
 
 SET(CLIENT_EXTENSIONS_LUA
