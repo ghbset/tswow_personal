@@ -276,3 +276,16 @@ void TSInstance::SetInstanceGUIDData(uint32 id, TSGUID data)
 {
     m_script->SetGuidData(id, data->asGUID());
 }
+// @duskhaven-port-begin TSInstance
+// Convenience wrapper: open/close a GO by spawn id without a GUID lookup.
+void TSInstance::HandleGameObject(uint32 spawnId, bool open)
+{
+    if (GameObject* go = map->GetGameObjectBySpawnId(spawnId))
+        go->SetGoState(open ? GO_STATE_ACTIVE : GO_STATE_READY);
+}
+
+// Skipped (require TC core InstanceScript additions):
+//   GetActiveCriteria / SetActiveCriteria - custom per-boss achievement criteria tracking
+//   GetSpawnLoc / SetSpawnLoc              - custom instance spawn point override
+//   TriggerResetHook                       - custom reset event
+// @duskhaven-port-end TSInstance

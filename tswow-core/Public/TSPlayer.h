@@ -477,6 +477,15 @@ public:
 	bool HasResistanceOverride(uint32 school);
 	void ClearResistanceOverride(uint32 school);
 
+	// @duskhaven-port
+	TSNumber<float> GetAttackSpeed(uint8 attackType);
+	TSNumber<float> GetRatingMultiplier(uint32 cr);
+	TSNumber<float> GetRatingBonusValue(uint32 cr);
+	TSArray<TSGUID> GetTotems();
+	bool IsInFeralForm();
+	bool IsMaxLevel();
+	void UnsummonPet();
+
 private:
 		TSLua::Dictionary<TSNumber<uint32>, TSPlayerSpell> LGetSpellMap();
 		TSItem LGetItemByGUID0(TSGUID guid);
