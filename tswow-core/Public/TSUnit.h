@@ -229,6 +229,48 @@ public:
     TSNumber<uint32> GetArmor();
     void SetResistance(uint32 school, int32 val);
     void SetArmor(int32 val);
+
+    // @duskhaven-port
+    TSNumber<float> ApplyEffectModifiers(TSSpellInfo info, uint8 index, float value) const;
+    void EnergizeBySpell(TSUnit who, uint32 spellId, int32 amount, uint8 powerType);
+    TSArray<TSAuraApplication> GetAppliedAurasById(uint32 spellId);
+    TSNumber<uint32> GetAttackTime(uint8 attackType) const;
+    TSNumber<uint32> GetBleedsByCaster(TSGUID casterGUID, bool remove);
+    TSNumber<uint32> GetCreatePowerValue(int type);
+    TSNumber<uint32> GetDiseasesByCaster(TSGUID casterGUID, bool remove);
+    TSNumber<float> GetFlatModifierValue(uint8 unitMod, uint8 modifierType) const;
+    TSNumber<float> GetPPMProcChance(uint32 speed, float ppm, TSSpellInfo spell);
+    TSNumber<float> GetPctModifierValue(uint8 unitMod, uint8 modifierType) const;
+    TSGUID GetSummonedObjectGUID(uint32 slot = 0);
+    TSNumber<float> GetTotalAttackPowerValue(uint8 attackType) const;
+    TSNumber<float> GetWeaponDamageRange(uint8 attackType, uint8 range, uint8 index) const;
+    bool HasAuraState(uint8 auraState, TSSpellInfo spell, TSUnit caster);
+    bool HasAuraWithMechanic(uint32 mechanic);
+    bool HasDispellableAuraOfType(uint32 dispelMask);
+    bool HasOffhandWeapon();
+    bool IsGuardian();
+    bool IsHunterPet();
+    bool IsInCombatWith(TSUnit who);
+    bool IsPet();
+    bool IsSummon();
+    bool IsTotem();
+    bool IsVehicle();
+    void ModifyAuraState(uint8 auraState, bool isApplied);
+    void RemoveUnitFlag(uint32 flags);
+    bool RollChance(uint8 chance);
+    bool RollChanceF(float chance);
+    TSArray<TSUnit> SelectNearbyAllies(TSUnit target, TSArray<TSUnit> exclude, float dist, uint32 amount, uint32 withoutAura);
+    TSArray<TSUnit> SelectTargetsNearTarget(TSUnit target, TSArray<TSUnit> exclude, float dist, uint32 amount, uint32 withoutAura);
+    void SetControlled(bool apply, uint32 unitState);
+    void SetImmuneToNPC(bool apply, bool keepCombat = false);
+    void SetImmuneToPC(bool apply, bool keepCombat = false);
+    void SetStatFlatModifier(uint8 unitMod, uint8 modifierType, float val);
+    void SetStatPctModifier(uint8 unitMod, uint8 modifierType, float val);
+    void SetUnitFlag(uint32 flags);
+    TSNumber<float> SpellBaseDamageBonusDone(uint32 schoolMask) const;
+    void UpdateAllResistances();
+    void UpdateResistance(uint32 school);
+
 private:
     TSLua::Array<TSUnit> LGetControlled();
     friend class TSLua;

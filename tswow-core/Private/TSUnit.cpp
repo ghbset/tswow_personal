@@ -2576,3 +2576,189 @@ bool TSUnit::IsSchoolLocked(uint32 schoolMask)
 {
     return unit->GetSpellHistory()->IsSchoolLocked(SpellSchoolMask(schoolMask));
 }
+
+// @duskhaven-port-begin TSUnit
+#include "TSGUID.h"
+
+TSNumber<float> TSUnit::ApplyEffectModifiers(TSSpellInfo info, uint8 index, float value) const
+{
+    return unit->ApplyEffectModifiers(info.info, index, value);
+}
+
+void TSUnit::EnergizeBySpell(TSUnit who, uint32 spellId, int32 amount, uint8 powerType)
+{
+    unit->EnergizeBySpell(who.unit, spellId, amount, Powers(powerType));
+}
+
+TSArray<TSAuraApplication> TSUnit::GetAppliedAurasById(uint32 spellId)
+{
+    TSArray<TSAuraApplication> out;
+    auto bounds = unit->GetAppliedAuras().equal_range(spellId);
+    for (auto it = bounds.first; it != bounds.second; ++it)
+        out.push(TSAuraApplication(it->second));
+    return out;
+}
+
+TSNumber<uint32> TSUnit::GetAttackTime(uint8 attackType) const
+{
+    return unit->GetAttackTime(WeaponAttackType(attackType));
+}
+
+TSNumber<uint32> TSUnit::GetBleedsByCaster(TSGUID /*casterGUID*/, bool /*remove*/)
+{
+    // Duskhaven added a Unit::GetBleedsByCaster helper; not present in base TC.
+    return 0u;
+}
+
+TSNumber<uint32> TSUnit::GetCreatePowerValue(int type)
+{
+    Powers power = Powers(type);
+    return unit->GetCreatePowerValue(power);
+}
+
+TSNumber<uint32> TSUnit::GetDiseasesByCaster(TSGUID /*casterGUID*/, bool /*remove*/)
+{
+    // Duskhaven added a Unit::GetDiseasesByCaster helper; not present in base TC.
+    return 0u;
+}
+
+TSNumber<float> TSUnit::GetFlatModifierValue(uint8 unitMod, uint8 modifierType) const
+{
+    return unit->GetFlatModifierValue(UnitMods(unitMod), UnitModifierFlatType(modifierType));
+}
+
+TSNumber<float> TSUnit::GetPPMProcChance(uint32 speed, float ppm, TSSpellInfo spell)
+{
+    return unit->GetPPMProcChance(speed, ppm, spell.info);
+}
+
+TSNumber<float> TSUnit::GetPctModifierValue(uint8 unitMod, uint8 modifierType) const
+{
+    return unit->GetPctModifierValue(UnitMods(unitMod), UnitModifierPctType(modifierType));
+}
+
+TSGUID TSUnit::GetSummonedObjectGUID(uint32 slot)
+{
+    return TSGUID(unit->m_ObjectSlot[slot]);
+}
+
+TSNumber<float> TSUnit::GetTotalAttackPowerValue(uint8 attackType) const
+{
+    return unit->GetTotalAttackPowerValue(WeaponAttackType(attackType));
+}
+
+TSNumber<float> TSUnit::GetWeaponDamageRange(uint8 attackType, uint8 range, uint8 index) const
+{
+    return unit->GetWeaponDamageRange(WeaponAttackType(attackType), WeaponDamageRange(range), index);
+}
+
+bool TSUnit::HasAuraState(uint8 auraState, TSSpellInfo spell, TSUnit caster)
+{
+    SpellInfo const* spellInfo = spell ? spell.info : nullptr;
+    Unit* casterUnit = caster ? caster.unit : nullptr;
+    return unit->HasAuraState(AuraStateType(auraState), spellInfo, casterUnit);
+}
+
+bool TSUnit::HasAuraWithMechanic(uint32 mechanic)
+{
+    return unit->HasAuraWithMechanic(mechanic);
+}
+
+bool TSUnit::HasDispellableAuraOfType(uint32 dispelMask)
+{
+    // Duskhaven's helper isn't in base TC; emulate with GetDispellableAuraList.
+    DispelChargesList dispelList;
+    unit->GetDispellableAuraList(unit, dispelMask, dispelList);
+    return !dispelList.empty();
+}
+
+bool TSUnit::HasOffhandWeapon()
+{
+    return unit->haveOffhandWeapon();
+}
+
+bool TSUnit::IsGuardian()  { return unit->IsGuardian(); }
+bool TSUnit::IsHunterPet() { return unit->IsHunterPet(); }
+bool TSUnit::IsPet()       { return unit->IsPet(); }
+bool TSUnit::IsSummon()    { return unit->IsSummon(); }
+bool TSUnit::IsTotem()     { return unit->IsTotem(); }
+bool TSUnit::IsVehicle()   { return unit->IsVehicle(); }
+
+bool TSUnit::IsInCombatWith(TSUnit who)
+{
+    return unit->IsInCombatWith(who.unit);
+}
+
+void TSUnit::ModifyAuraState(uint8 auraState, bool isApplied)
+{
+    unit->ModifyAuraState(AuraStateType(auraState), isApplied);
+}
+
+void TSUnit::RemoveUnitFlag(uint32 flags)
+{
+    unit->RemoveUnitFlag(UnitFlags(flags));
+}
+
+bool TSUnit::RollChance(uint8 chance)  { return roll_chance_i(chance); }
+bool TSUnit::RollChanceF(float chance) { return roll_chance_f(chance); }
+
+// SelectNearbyAllies / SelectTargetsNearTarget - Duskhaven extensions.
+// Base TC's Unit has neither. Returning empty arrays so the API exists for scripts;
+// if you need this behaviour, reimplement via a Trinity::AnyFriendlyUnitInObjectRangeCheck
+// visitor + Cell::VisitGridObjects.
+TSArray<TSUnit> TSUnit::SelectNearbyAllies(TSUnit /*target*/, TSArray<TSUnit> /*exclude*/, float /*dist*/, uint32 /*amount*/, uint32 /*withoutAura*/)
+{
+    return TSArray<TSUnit>();
+}
+
+TSArray<TSUnit> TSUnit::SelectTargetsNearTarget(TSUnit /*target*/, TSArray<TSUnit> /*exclude*/, float /*dist*/, uint32 /*amount*/, uint32 /*withoutAura*/)
+{
+    return TSArray<TSUnit>();
+}
+
+void TSUnit::SetControlled(bool apply, uint32 unitState)
+{
+    unit->SetControlled(apply, UnitState(unitState));
+}
+
+void TSUnit::SetImmuneToNPC(bool apply, bool keepCombat)
+{
+    unit->SetImmuneToNPC(apply, keepCombat);
+}
+
+void TSUnit::SetImmuneToPC(bool apply, bool keepCombat)
+{
+    unit->SetImmuneToPC(apply, keepCombat);
+}
+
+void TSUnit::SetStatFlatModifier(uint8 unitMod, uint8 modifierType, float val)
+{
+    unit->SetStatFlatModifier(UnitMods(unitMod), UnitModifierFlatType(modifierType), val);
+}
+
+void TSUnit::SetStatPctModifier(uint8 unitMod, uint8 modifierType, float val)
+{
+    unit->SetStatPctModifier(UnitMods(unitMod), UnitModifierPctType(modifierType), val);
+}
+
+void TSUnit::SetUnitFlag(uint32 flags)
+{
+    unit->SetUnitFlag(UnitFlags(flags));
+}
+
+TSNumber<float> TSUnit::SpellBaseDamageBonusDone(uint32 schoolMask) const
+{
+    return unit->SpellBaseDamageBonusDone(SpellSchoolMask(schoolMask));
+}
+
+void TSUnit::UpdateAllResistances()
+{
+    for (uint8 i = 0; i < MAX_SPELL_SCHOOL; i++)
+        unit->UpdateResistances(i);
+}
+
+void TSUnit::UpdateResistance(uint32 school)
+{
+    unit->UpdateResistances(school);
+}
+// @duskhaven-port-end TSUnit
