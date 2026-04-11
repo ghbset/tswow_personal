@@ -139,6 +139,11 @@ public:
     TSSpellInfo GetLastRankSpell();
     TSSpellInfo GetNextRankSpell();
     TSSpellInfo GetPrevRankSpell();
+    // @duskhaven-port
+    TSNumber<int32> GetDuration();
+    TSNumber<int32> GetMaxDuration();
+    TSNumber<uint32> GetMaxTicks();
+    TSNumber<uint32> GetAllEffectsMechanicMask();
 };
 
 TC_GAME_API TSSpellInfo GetSpellInfo(uint32 entry);
