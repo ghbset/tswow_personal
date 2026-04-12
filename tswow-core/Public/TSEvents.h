@@ -180,6 +180,8 @@ struct TSEvents
          EVENT(OnQuestStatusChange, TSPlayer, TSNumber<uint32>)
          EVENT(OnMovieComplete, TSPlayer, TSNumber<uint32>)
          EVENT(OnPlayerRepop, TSPlayer)
+         // Pre-existing in-progress feature (tracks source spell of resurrect)
+         EVENT(OnResurrect, TSPlayer, TSNumber<uint32>)
          EVENT(OnSendMail, TSPlayer, TSMailDraft, TSMutableNumber<uint32>)
 
          EVENT(OnGenerateItemLoot, TSPlayer, TSItem, TSLoot, TSNumber<uint32>)
@@ -362,10 +364,6 @@ struct TSEvents
              , TSPlayer
              , TSMutableNumber<float>
          );
-        EVENT(OnCalcParryFromStr
-             , TSPlayer
-             , TSMutableNumber<float>
-         );
         EVENT(OnUpdateStats
              , TSPlayer
              , TSMutableNumber<float>
@@ -378,7 +376,6 @@ struct TSEvents
         EVENT(OnCustomScriptedCritMod, TSPlayer Caster, TSUnit Against, TSSpellInfo SpellInfo, TSMutableNumber<float> CritChance)
         EVENT(OnCustomScriptedHealMod, TSPlayer caster, TSUnit Against, TSSpellInfo SpellInfo, TSMutableNumber<float> DoneTotalMod)
         EVENT(OnPowerSpent, TSPlayer Caster, TSNumber<uint8> PowerType, TSNumber<int32> PowerCost)
-        EVENT(OnComboPointsSpent, TSPlayer Caster, TSNumber<int32> Cost)
         EVENT(OnEnchantTriggered, TSPlayer player, TSUnit target, TSItem item, TSSpellInfo spellInfo)
         EVENT(OnCustomScriptedCritDamageMod, TSPlayer Caster, TSUnit Against, TSSpellInfo SpellInfo, TSMutableNumber<float> CritDamMod)
         EVENT(OnCustomScriptedCritHealingMod, TSPlayer Caster, TSUnit Against, TSSpellInfo SpellInfo, TSMutableNumber<float> CritDamMod)
@@ -391,30 +388,16 @@ struct TSEvents
         EVENT(OnRunicGainedFromSpell, TSSpell, TSPlayer, TSUnit, TSMutableNumber<int32>)
         EVENT(OnPowerChanged, TSPlayer, TSNumber<uint8>, TSNumber<uint32>, TSNumber<uint32>)
         EVENT(BeforeModifyPower, TSPlayer, TSNumber<uint8>, TSMutableNumber<int32>)
-        EVENT(OnUpdateSpeedRating, TSPlayer, TSNumber<float>)
-        EVENT(OnUpdateLeechRating, TSPlayer, TSNumber<float>)
-        EVENT(OnUpdateAvoidanceRating, TSPlayer, TSNumber<float>)
-        EVENT(OnUpdateMasteryRating, TSPlayer, TSNumber<float>)
-        EVENT(OnUpdateThornsRating, TSPlayer, TSNumber<float>)
-        EVENT(OnCustomStatAura, TSPlayer, bool, TSSpellInfo, TSNumber<uint8>, TSNumber<uint8>, TSNumber<float>)
-        EVENT(GetRatingDiminishing, TSPlayer, TSNumber<uint8>, TSMutableNumber<float>)
         EVENT(OnCalcFallDamage, TSPlayer, TSMutableNumber<uint32>)
         EVENT(GainComboPoint, TSPlayer, TSNumber<int8>)
-        EVENT(ClearComboPoints, TSPlayer)
         EVENT(OnEquipMainhandWeapon, TSPlayer, TSItem)
         EVENT(OnUnequipMainhandWeapon, TSPlayer, TSItem)
         EVENT(OnEquipOffhandWeapon, TSPlayer, TSItem)
         EVENT(OnUnequipOffhandWeapon, TSPlayer, TSItem)
         EVENT(OnActionButtonSet, TSPlayer, TSNumber<uint8>, TSNumber<uint32>, TSNumber<uint8>)
         EVENT(OnActionButtonDelete, TSPlayer, TSNumber<uint8>, TSNumber<uint32>, TSNumber<uint8>)
-        EVENT(CanLoot, TSPlayer, TSCreature, TSMutable<bool,bool>)
-        EVENT(CanRoll, TSPlayer, TSCreature, TSMutable<bool,bool>)
         EVENT(ScaleRegenByHaste, TSPlayer, TSMutableNumber<float>)
-        EVENT(OnUpdateHasteRating, TSPlayer, TSNumber<float>, TSMutableNumber<float>, TSNumber<float>, TSMutableNumber<float>, TSMutableNumber<float>)
-        EVENT(LoadPresetAmmo, TSPlayer, TSItemTemplate, TSMutableNumber<uint32>)
         EVENT(OnTempEnchant, TSPlayer, TSNumber<uint32>)
-        EVENT(CheckLoadoutString, TSPlayer, std::string, TSMutable<bool, bool>)
-        EVENT(CheckValidRaceClass, TSNumber<uint32>, TSNumber<uint32>, TSNumber<uint32>, TSNumber<uint32>, TSMutable<bool, bool>)
         EVENT(OnLossOfControl, TSPlayer)
         EVENT(OnControlRegained, TSPlayer)
         EVENT(IsCriticalBlock, TSPlayer, TSMutable<bool,bool>, bool)
@@ -539,7 +522,6 @@ struct TSEvents
         EVENT(OnRageGainedViaAttack, TSUnit, TSUnit, TSNumber<uint8>, TSMutableNumber<uint32> rage_damage)
         EVENT(OnCustomDamageTaken, TSUnit, TSUnit, TSMutableNumber<uint32>)
         EVENT(OnUpdateDisplayPower, TSUnit, TSMutableNumber<int8>)
-        EVENT(OnHandleShapeshiftPower, TSUnit, TSNumber<int32>, TSMutableNumber<int8>)
          // @duskhaven-port-end UnitEvents
     } Unit;
 
@@ -621,18 +603,14 @@ struct TSEvents
         ID_EVENT(OnAuraApplied, TSUnit, TSAura, TSUnit)
         ID_EVENT(OnAuraRemoved, TSAura, TSUnit, TSNumber<uint32>)
         ID_EVENT(OnHeal, TSUnit, TSUnit, TSMutableNumber<uint32>)
-        ID_EVENT(CanAuraBeBrokenBySpell, TSUnit, TSUnit, TSAura, TSSpellInfo, TSNumber<uint8>, TSMutable<bool, bool>)
         ID_EVENT(OnCustomMechanicMaskDamage, TSUnit, TSSpellInfo, TSMutableNumber<uint32>)
         ID_EVENT(OnSuccessfulInterrupt, TSUnit caster, TSUnit who, TSSpell spell)
-        ID_EVENT(OnCalcSpellDuration, TSSpellInfo Info, TSPlayer Player, TSMutableNumber<int32> Dur)
         ID_EVENT(OnJumpStart, TSSpellInfo, TSUnit, TSMutableNumber<float>, TSMutableNumber<float>, TSNumber<float>, TSNumber<float>, TSNumber<float>, TSNumber<float>)
-        ID_EVENT(OnJumpEnd, TSSpellInfo, TSUnit)
         ID_EVENT(OnCastCancelled, TSUnit, TSUnit, TSSpell, TSNumber<int32>, TSNumber<int32>)
         ID_EVENT(OnSpellCastFinished, TSSpell, TSUnit, TSNumber<uint32>)
         ID_EVENT(CanMoveWhileChanneling, TSSpell, TSUnit, TSMutable<bool, bool>)
         ID_EVENT(OnCheckGCDCategory, TSSpell, TSMutableNumber<uint32>)
         ID_EVENT(OnEnergizeBySpell, TSUnit, TSSpellInfo, TSNumber<uint8>, TSMutableNumber<int32>)
-        ID_EVENT(OnCooldownFinished, TSUnit, TSSpellInfo, TSNumber<uint32>, TSNumber<uint32>)
         ID_EVENT(OnDynObjectRemove, TSUnit, TSSpellDestination)
         ID_EVENT(OnPAARemoved, TSUnit, TSUnit, TSDynObj)
          // @duskhaven-port-end SpellEvents
@@ -770,9 +748,6 @@ struct TSEvents
         )
 
          // @duskhaven-port-begin CreatureEvents
-        ID_EVENT(OnJustExitedCombat, TSCreature, TSUnit)
-        ID_EVENT(OnTotemSummoned, TSUnit, TSCreature)
-        ID_EVENT(OnTotemDespawn, TSCreature, TSUnit)
         ID_EVENT(OnPetSummoned, TSUnit, TSCreature)
         ID_EVENT(OnPetDespawn, TSCreature, TSPlayer)
         ID_EVENT(OnDamageTaken, TSCreature, TSUnit, TSNumber<uint32>)
@@ -782,7 +757,6 @@ struct TSEvents
         ID_EVENT(OnPetUpdateMaxPower, TSCreature, TSPlayer, TSMutableNumber<float>, TSNumber<int8> powerType)
         ID_EVENT(OnPetUpdateAttackPowerDamage, TSCreature, TSPlayer, TSMutableNumber<float> base, TSMutableNumber<float> mod, TSMutableNumber<float> multiplier, bool ranged)
         ID_EVENT(OnPetUpdateDamagePhysical, TSCreature, TSPlayer, TSMutableNumber<float>, TSMutableNumber<float>, TSNumber<float>, TSNumber<uint8> attType)
-        ID_EVENT(OnPetUpdateSpellPower, TSCreature, TSPlayer, TSMutableNumber<int32>)
         ID_EVENT(OnPetUpdateStat, TSCreature, TSPlayer, TSMutableNumber<float>, TSMutableNumber<float>, TSNumber<uint32> stat)
         ID_EVENT(OnGuardianUpdateDamagePhysical
             , TSCreature
@@ -838,7 +812,6 @@ struct TSEvents
         ID_EVENT(OnWeatherChange, TSMap, TSWeather)
 
          // @duskhaven-port-begin MapEvents
-        ID_EVENT(CopyMapIfAble, TSMap, TSMutableNumber<uint32>)
          // @duskhaven-port-end MapEvents
     } Map;
 
@@ -947,7 +920,6 @@ struct TSEvents
         ID_EVENT(OnRaidBossKilled, TSInstance, TSUnit source)
         ID_EVENT(OnDungeonBossKilled, TSInstance, TSUnit source)
         ID_EVENT(OnDungeonCompleted, TSInstance)
-        ID_EVENT(OnUpdateCriteria, TSInstance, TSUnit victim)
         ID_EVENT(ResetInstance, TSInstance)
         ID_EVENT(HandleRelease, TSInstance, TSPlayer player, TSMutable<bool,bool> handled)
          // @duskhaven-port-end InstanceEvents
