@@ -4,6 +4,7 @@
 #include "TSWorldObject.h"
 #include "TSLua.h"
 
+class DynamicObject;
 class TSUnit;
 class TSAura;
 class TSSpellInfo;
