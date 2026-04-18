@@ -114,7 +114,11 @@ int main(int argc, char **argv)
     HANDLE handle = NULL;
     size_t power = 4;
     while (power < files.size()) power <<= 1;
-    if (!SFileCreateArchive(temp.m_file.c_str(), 0, power, &handle))
+    // MPQ_CREATE_ARCHIVE_V2 (0x01000000) selects the 64-bit-offset format
+    // that supports archives larger than 4 GB. The default flag (V1) caps
+    // the archive at 4 GB and segfaults at the boundary on large datasets
+    // like openazeroth's WORLD/ tree. WoW 3.3.5a clients support v2.
+    if (!SFileCreateArchive(temp.m_file.c_str(), MPQ_CREATE_ARCHIVE_V2, power, &handle))
     {
         std::cerr << "Failed to create output mpq file " << temp.m_file << "\n";
         return -1;

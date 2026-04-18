@@ -274,6 +274,7 @@ void TSLua::load_events(sol::state& state)
     LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnJumpStart);
     LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnCastCancelled);
     LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnSpellCastFinished);
+    LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnChannelFinished);
     LUA_MAPPED_HANDLE(spell_events, SpellEvents, CanMoveWhileChanneling);
     LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnCheckGCDCategory);
     LUA_MAPPED_HANDLE(spell_events, SpellEvents, OnEnergizeBySpell);

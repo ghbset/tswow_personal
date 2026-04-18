@@ -608,6 +608,7 @@ struct TSEvents
         ID_EVENT(OnJumpStart, TSSpellInfo, TSUnit, TSMutableNumber<float>, TSMutableNumber<float>, TSNumber<float>, TSNumber<float>, TSNumber<float>, TSNumber<float>)
         ID_EVENT(OnCastCancelled, TSUnit, TSUnit, TSSpell, TSNumber<int32>, TSNumber<int32>)
         ID_EVENT(OnSpellCastFinished, TSSpell, TSUnit, TSNumber<uint32>)
+        ID_EVENT(OnChannelFinished, TSSpell, TSUnit)
         ID_EVENT(CanMoveWhileChanneling, TSSpell, TSUnit, TSMutable<bool, bool>)
         ID_EVENT(OnCheckGCDCategory, TSSpell, TSMutableNumber<uint32>)
         ID_EVENT(OnEnergizeBySpell, TSUnit, TSSpellInfo, TSNumber<uint8>, TSMutableNumber<int32>)

@@ -87,7 +87,7 @@ export class Package {
                         }
                     }
                 }
-                appendListfile('luaxml',`${node.abs().get()}\t${rel}\n`)
+                appendListfile('luaxml',`${node.abs().get()}\t${rel.split('/').join('\\')}\n`)
             });
         }
 
@@ -103,7 +103,7 @@ export class Package {
                         || lower.endsWith('.json')
                         || lower.endsWith('.dbc')
                     ) return;
-                    appendListfile(x.fullName, `${node.abs()}\t${node.relativeTo(x.assets.path)}\n`)
+                    appendListfile(x.fullName, `${node.abs()}\t${node.relativeTo(x.assets.path).split('/').join('\\')}\n`)
                 });
             })
 
