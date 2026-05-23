@@ -8645,6 +8645,7 @@ declare namespace _hidden {
         OnCustomMechanicMaskDamage(callback: (unit : TSUnit, spellInfo : TSSpellInfo, value : TSMutableNumber<uint32>)=>void);
         OnSuccessfulInterrupt(callback: (caster : TSUnit, who : TSUnit, spell : TSSpell)=>void);
         OnJumpStart(callback: (spellInfo : TSSpellInfo, unit : TSUnit, value : TSMutableNumber<float>, value2 : TSMutableNumber<float>, n : TSNumber<float>, n2 : TSNumber<float>, n3 : TSNumber<float>, n4 : TSNumber<float>)=>void);
+        OnJumpEnd(callback: (spellInfo : TSSpellInfo, unit : TSUnit)=>void);
         OnCastCancelled(callback: (unit : TSUnit, unit2 : TSUnit, spell : TSSpell, n : TSNumber<int32>, n2 : TSNumber<int32>)=>void);
         OnSpellCastFinished(callback: (spell : TSSpell, unit : TSUnit, n : TSNumber<uint32>)=>void);
         OnChannelFinished(callback: (spell : TSSpell, unit : TSUnit)=>void);
