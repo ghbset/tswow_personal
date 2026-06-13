@@ -27,6 +27,96 @@
 #include "GameEventMgr.h"
 #include "TSItemTemplate.h"
 
+#include <unordered_map>
+#include <sstream>
+#include <iomanip>
+
+// @duskhaven-port-begin TSGlobal
+std::unordered_map<opcode_t, bool> notInWorldCustomOpcodeMap;
+
+void RegisterPacketForNotInWorld(opcode_t opcode, bool isActive)
+{
+    notInWorldCustomOpcodeMap[opcode] = isActive;
+}
+
+std::string santizeForDB(std::string const& input)
+{
+    // escape / strip characters that would break SQL or be used maliciously
+    std::string out;
+    out.reserve(input.size());
+    for (char c : input)
+    {
+        switch (c)
+        {
+        case '\'': out += "''";    break;
+        case '"':  out += "\"\"";  break;
+        case '\\': out += "\\\\";  break;
+        case '\0': out += "\\0";   break;
+        case '\n': out += "\\n";   break;
+        case '\r': out += "\\r";   break;
+        case '\b': out += "\\b";   break;
+        case '\t': out += "\\t";   break;
+        case '%':  out += "\\%";   break;
+        case '*': case '/': case '#': case '-': case ';': case '_':
+            // strip
+            break;
+        default:
+            out += c;
+            break;
+        }
+    }
+    return out;
+}
+
+void KickAll()
+{
+    sWorld->KickAll();
+}
+
+bool IsNumber(std::string const& value)
+{
+    if (value.empty())
+        return false;
+
+    std::size_t pos = 0;
+    if (value[0] == '+' || value[0] == '-')
+    {
+        pos = 1;
+        if (value.length() == 1)
+            return false;
+    }
+
+    bool hasDecimal = false;
+    bool hasDigit = false;
+    for (std::size_t i = pos; i < value.length(); ++i)
+    {
+        char c = value[i];
+        if (c == '.')
+        {
+            if (hasDecimal)
+                return false;
+            hasDecimal = true;
+        }
+        else if (c >= '0' && c <= '9')
+        {
+            hasDigit = true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    return hasDigit;
+}
+
+std::string ToFixed(double value, uint32_t digits)
+{
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(digits) << value;
+    return oss.str();
+}
+// @duskhaven-port-end TSGlobal
+
 TSItemTemplate CreateItemTemplate(uint32 entry,uint32 copyItemID)
 {
 #if TRINITY

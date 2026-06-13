@@ -36,7 +36,14 @@ public:
         , chunkSize_t bufferSize
         );
     ~CustomPacketBuffer();
-    CustomPacketResult ReceivePacket(chunkSize_t size, char* data);
+    // @duskhaven-port: skipSuccess lets callers parse the packet header
+    // (and check its opcode) without actually firing OnPacket.
+    // Use callOnSuccess()/clearPacket() afterwards.
+    CustomPacketResult ReceivePacket(chunkSize_t size, char* data, bool skipSuccess = false);
+    // @duskhaven-port helpers for two-phase receive (NotInWorld whitelist)
+    CustomPacketResult callOnSuccess();
+    void clearPacket();
+    opcode_t GetOpcode() { return m_cur.Opcode(); }
     totalSize_t Size();
 protected:
     virtual void OnPacket(CustomPacketRead * value) {}

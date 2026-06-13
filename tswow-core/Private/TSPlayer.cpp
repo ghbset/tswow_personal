@@ -4636,3 +4636,60 @@ void TSPlayer::ClearResistanceOverride(uint32 school)
 {
     player->ClearResistanceOverride(school);
 }
+
+// @duskhaven-port-begin TSPlayer
+#include "Pet.h"
+#include "TemporarySummon.h"
+#include "TSGUID.h"
+
+TSNumber<float> TSPlayer::GetAttackSpeed(uint8 attackType)
+{
+    if (attackType >= MAX_ATTACK)
+        return 0.0f;
+    return player->m_modAttackSpeedPct[attackType];
+}
+
+TSNumber<float> TSPlayer::GetRatingMultiplier(uint32 cr)
+{
+    return player->GetRatingMultiplier(CombatRating(cr));
+}
+
+TSNumber<float> TSPlayer::GetRatingBonusValue(uint32 cr)
+{
+    return player->GetRatingBonusValue(CombatRating(cr));
+}
+
+TSArray<TSGUID> TSPlayer::GetTotems()
+{
+    TSArray<TSGUID> out;
+    for (uint8 slot = SUMMON_SLOT_TOTEM_FIRE; slot < MAX_TOTEM_SLOT; ++slot)
+    {
+        ObjectGuid guid = player->m_SummonSlot[slot];
+        if (!guid.IsEmpty())
+            out.push(TSGUID(guid));
+    }
+    return out;
+}
+
+bool TSPlayer::IsInFeralForm()
+{
+    return player->IsInFeralForm();
+}
+
+bool TSPlayer::IsMaxLevel()
+{
+    return player->IsMaxLevel();
+}
+
+void TSPlayer::UnsummonPet()
+{
+    // Iterate m_Controlled carefully - UnSummon modifies it.
+    std::vector<Unit*> toUnsummon;
+    for (Unit* controlled : player->m_Controlled)
+        if (controlled && controlled->IsAlive())
+            toUnsummon.push_back(controlled);
+    for (Unit* u : toUnsummon)
+        if (TempSummon* temp = u->ToTempSummon())
+            temp->UnSummon();
+}
+// @duskhaven-port-end TSPlayer

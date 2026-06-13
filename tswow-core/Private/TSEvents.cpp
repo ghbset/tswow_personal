@@ -34,6 +34,7 @@
 #include "SpellMgr.h"
 #include "SpellInfo.h"
 #include "Config.h"
+#include "Log.h"
 
 #include <fstream>
 #include <map>
@@ -45,34 +46,56 @@
 //
 // ============================================================================
 
+// When a livescript registers an id-based event for a template/entry that does
+// not exist in this world build (e.g. a bespoke quest hooking a creature that
+// was never imported), the Get*() lookup returns nullptr and dereferencing it
+// to read `.events` segfaults during livescript load. Route those to a shared
+// throwaway registry slot so the registration becomes a harmless no-op (the
+// event can never fire anyway, since no such object exists) instead of crashing
+// the whole worldserver at startup.
+namespace
+{
+    template <typename T>
+    TSRegistryRef& ts_events_ref_or_missing(T const* tpl, uint32_t id, char const* kind)
+    {
+        if (!tpl)
+        {
+            static TSRegistryRef missing;
+            TC_LOG_ERROR("tswow", "Livescript registered an event for missing %s %u; skipping registration (no-op).", kind, id);
+            return missing;
+        }
+        return const_cast<TSRegistryRef&>(tpl->events);
+    }
+}
+
 TSRegistryRef& TSEvents::SpellEvents::get_registry_ref(uint32_t id)
 {
-    return const_cast<TSRegistryRef&>(sSpellMgr->GetSpellInfo(id)->events);
+    return ts_events_ref_or_missing(sSpellMgr->GetSpellInfo(id), id, "spell");
 }
 
 TSRegistryRef& TSEvents::CreatureEvents::get_registry_ref(uint32_t id)
 {
-    return const_cast<TSRegistryRef&>(sObjectMgr->GetCreatureTemplate(id)->events);
+    return ts_events_ref_or_missing(sObjectMgr->GetCreatureTemplate(id), id, "creature");
 }
 
 TSRegistryRef& TSEvents::VehicleEvents::get_registry_ref(uint32_t id)
 {
-    return const_cast<TSRegistryRef&>(sObjectMgr->GetCreatureTemplate(id)->events);
+    return ts_events_ref_or_missing(sObjectMgr->GetCreatureTemplate(id), id, "vehicle creature");
 }
 
 TSRegistryRef& TSEvents::GameObjectEvents::get_registry_ref(uint32_t id)
 {
-    return const_cast<TSRegistryRef&>(sObjectMgr->GetGameObjectTemplate(id)->events);
+    return ts_events_ref_or_missing(sObjectMgr->GetGameObjectTemplate(id), id, "gameobject");
 }
 
 TSRegistryRef& TSEvents::ItemEvents::get_registry_ref(uint32_t id)
 {
-    return const_cast<TSRegistryRef&>(sObjectMgr->GetItemTemplate(id)->events);
+    return ts_events_ref_or_missing(sObjectMgr->GetItemTemplate(id), id, "item");
 }
 
 TSRegistryRef& TSEvents::QuestEvents::get_registry_ref(uint32_t id)
 {
-    return const_cast<TSRegistryRef&>(sObjectMgr->GetQuestTemplate(id)->events);
+    return ts_events_ref_or_missing(sObjectMgr->GetQuestTemplate(id), id, "quest");
 }
 
 // ============================================================================
@@ -114,6 +137,7 @@ public:
 
                 if(m_lua_cb.valid())
                 {
+                    TSWOW_LUA_GUARD
                     m_lua_cb(TS(entry.second));
                 }
             }

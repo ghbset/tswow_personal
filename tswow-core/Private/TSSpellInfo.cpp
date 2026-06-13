@@ -519,3 +519,27 @@ TSSpellInfo TSSpellInfo::GetPrevRankSpell()
 {
     return info->GetPrevRankSpell();
 }
+// @duskhaven-port-begin TSSpellInfo
+TSNumber<int32> TSSpellInfo::GetDuration()
+{
+    return info->GetDuration();
+}
+
+TSNumber<int32> TSSpellInfo::GetMaxDuration()
+{
+    return info->GetMaxDuration();
+}
+
+TSNumber<uint32> TSSpellInfo::GetMaxTicks()
+{
+    // Note: Duskhaven's version takes a Unit* caster to factor in haste.
+    // Base TC's GetMaxTicks is stateless; if you need haste-scaled ticks,
+    // compute from GetMaxDuration() / effect amplitude at the call site.
+    return info->GetMaxTicks();
+}
+
+TSNumber<uint32> TSSpellInfo::GetAllEffectsMechanicMask()
+{
+    return info->GetAllEffectsMechanicMask();
+}
+// @duskhaven-port-end TSSpellInfo

@@ -23,3 +23,27 @@ Thumbs.db
 
 # Logs
 /log.txt
+package-lock.json
+package.json
+
+# Submodule / local install artifacts
+cores/TrinityCore
+
+# Modules live in tswow-install/modules — never track them from this repo
+/modules/
+
+# Local staging copies of TC source files (kept at repo root during
+# Duskhaven port work — not part of the tswow build)
+/Creature.cpp
+/DynamicObject.cpp
+/InstanceScript.cpp
+/Pet.h
+/SpellAuras.cpp
+/SpellHistory.cpp
+/TemporarySummon.cpp
+/Totem.cpp
+
+# Local tools and one-off scripts
+/llm-service/
+/fix-vendor-hang.sh
+/worldserver_performance_indexes.sql

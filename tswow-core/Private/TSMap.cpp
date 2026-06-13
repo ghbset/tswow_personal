@@ -492,6 +492,7 @@ bool TSMap::IsInLineOfSight(float x1,float y1,float z1, float x2, float y2, floa
 void TSMap::LDoDelayed(sol::function callback)
 {
 #if TRINITY
+    TSWOW_LUA_GUARD
     map->m_delayLuaCallbacks.push_back(callback);
 #endif
 }

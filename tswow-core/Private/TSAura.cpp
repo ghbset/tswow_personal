@@ -448,3 +448,21 @@ TSSpell TSProcEventInfo::GetSpell()
     return TSSpell(const_cast<Spell*>(m_info->GetProcSpell()));
 }
 
+
+// @duskhaven-port-begin TSAura
+TSNumber<uint32> TSAuraEffect::GetTriggerSpell()
+{
+    return aura->GetSpellEffectInfo().TriggerSpell;
+}
+
+bool TSAura::ModStackAmount(int32 number, uint8 removeMode, bool resetTimer)
+{
+    return aura->ModStackAmount(number, AuraRemoveMode(removeMode), resetTimer);
+}
+
+void TSAura::ModifyDuration(int32 time)
+{
+    aura->SetDuration(aura->GetDuration() + time);
+    aura->SetMaxDuration(aura->GetMaxDuration() + time);
+}
+// @duskhaven-port-end TSAura

@@ -8155,6 +8155,7 @@ declare namespace _hidden {
         OnQuestStatusChange(callback: (player : TSPlayer,questId : uint32)=>void);
         OnMovieComplete(callback: (player : TSPlayer,movieId : uint32)=>void);
         OnPlayerRepop(callback: (player : TSPlayer)=>void);
+        OnResurrect(callback: (player : TSPlayer, sourceSpellId : TSNumber<uint32>)=>void);
         OnSendMail(callback: (player: TSPlayer, draft: TSMailDraft, delay: TSMutableNumber<uint32>)=>void);
         OnGenerateItemLoot(callback: (player: TSPlayer, item: TSItem, loot: TSLoot, type: uint32)=>void);
         OnLootCorpse(callback: (player: TSPlayer, corpse: TSCorpse)=>void);
@@ -8307,6 +8308,46 @@ declare namespace _hidden {
             , creature: TSCreature
             , money: TSMutableNumber<float>
          ) => void);
+        // @duskhaven-port-begin
+        OnCalcIntellectCritBonus(callback: (player : TSPlayer, value : TSMutableNumber<float>)=>void);
+        OnCalcBlockValueFlat(callback: (player : TSPlayer, value : TSMutableNumber<float>)=>void);
+        OnCalcBlockValuePctMod(callback: (player : TSPlayer, value : TSMutableNumber<float>)=>void);
+        OnCalcDodgeFromAgility(callback: (player : TSPlayer, value : TSMutableNumber<float>)=>void);
+        OnUpdateStats(callback: (player : TSPlayer, value : TSMutableNumber<float>, n : TSNumber<uint32>)=>void);
+        OnCalcAgilityCritBonus(callback: (player : TSPlayer, value : TSMutableNumber<float>, n : TSNumber<float>)=>void);
+        OnSuccessfulInterrupt(callback: (player : TSPlayer, who : TSUnit, spell : TSSpell)=>void);
+        OnCustomScriptedDamageDoneMod(callback: (player : TSPlayer, against : TSUnit, spellInfo : TSSpellInfo, DamageType : TSNumber<uint8>, AttackType : TSNumber<uint8>, DoneTotalMod : TSMutableNumber<float>, Damage : TSMutableNumber<uint32>, IsPet : bool)=>void);
+        OnCustomScriptedDamageTakenMod(callback: (player : TSPlayer, against : TSUnit, spellInfo : TSSpellInfo, DamageType : TSNumber<uint8>, AttackType : TSNumber<uint8>, TakenTotalMod : TSMutableNumber<float>, SpellType : TSNumber<uint8>)=>void);
+        OnCustomScriptedCritMod(callback: (Caster : TSPlayer, Against : TSUnit, SpellInfo : TSSpellInfo, CritChance : TSMutableNumber<float>)=>void);
+        OnCustomScriptedHealMod(callback: (caster : TSPlayer, Against : TSUnit, SpellInfo : TSSpellInfo, DoneTotalMod : TSMutableNumber<float>)=>void);
+        OnPowerSpent(callback: (Caster : TSPlayer, PowerType : TSNumber<uint8>, PowerCost : TSNumber<int32>)=>void);
+        OnEnchantTriggered(callback: (player : TSPlayer, target : TSUnit, item : TSItem, spellInfo : TSSpellInfo)=>void);
+        OnCustomScriptedCritDamageMod(callback: (Caster : TSPlayer, Against : TSUnit, SpellInfo : TSSpellInfo, CritDamMod : TSMutableNumber<float>)=>void);
+        OnCustomScriptedCritHealingMod(callback: (Caster : TSPlayer, Against : TSUnit, SpellInfo : TSSpellInfo, CritDamMod : TSMutableNumber<float>)=>void);
+        OnCustomScriptedAutoattackMod(callback: (player : TSPlayer, against : TSUnit, DoneTotalMod : TSMutableNumber<float>, Damage : TSMutableNumber<uint32>, attackType : TSNumber<uint8>, IsPet : bool)=>void);
+        OnCustomScriptedAutoattackDamageTakenMod(callback: (player : TSPlayer, attacker : TSUnit, TakenTotalMod : TSMutableNumber<float>, Damage : TSMutableNumber<uint32>)=>void);
+        ScriptedArmorPenMod(callback: (player : TSPlayer, against : TSUnit, arpPct : TSMutableNumber<float>)=>void);
+        OnUpdateSpellHealing(callback: (player : TSPlayer, value : TSMutableNumber<int32>)=>void);
+        OnUpdateSpellDamage(callback: (player : TSPlayer, value : TSMutableNumber<int32>, n : TSNumber<uint8>)=>void);
+        OnRunesSpent(callback: (player : TSPlayer, n : TSNumber<uint8>)=>void);
+        OnRunicGainedFromSpell(callback: (spell : TSSpell, player : TSPlayer, unit : TSUnit, value : TSMutableNumber<int32>)=>void);
+        OnPowerChanged(callback: (player : TSPlayer, n : TSNumber<uint8>, n2 : TSNumber<uint32>, n3 : TSNumber<uint32>)=>void);
+        BeforeModifyPower(callback: (player : TSPlayer, n : TSNumber<uint8>, value : TSMutableNumber<int32>)=>void);
+        OnCalcFallDamage(callback: (player : TSPlayer, value : TSMutableNumber<uint32>)=>void);
+        GainComboPoint(callback: (player : TSPlayer, n : TSNumber<int8>)=>void);
+        OnEquipMainhandWeapon(callback: (player : TSPlayer, item : TSItem)=>void);
+        OnUnequipMainhandWeapon(callback: (player : TSPlayer, item : TSItem)=>void);
+        OnEquipOffhandWeapon(callback: (player : TSPlayer, item : TSItem)=>void);
+        OnUnequipOffhandWeapon(callback: (player : TSPlayer, item : TSItem)=>void);
+        OnActionButtonSet(callback: (player : TSPlayer, n : TSNumber<uint8>, n2 : TSNumber<uint32>, n3 : TSNumber<uint8>)=>void);
+        OnActionButtonDelete(callback: (player : TSPlayer, n : TSNumber<uint8>, n2 : TSNumber<uint32>, n3 : TSNumber<uint8>)=>void);
+        ScaleRegenByHaste(callback: (player : TSPlayer, value : TSMutableNumber<float>)=>void);
+        OnTempEnchant(callback: (player : TSPlayer, n : TSNumber<uint32>)=>void);
+        OnLossOfControl(callback: (player : TSPlayer)=>void);
+        OnControlRegained(callback: (player : TSPlayer)=>void);
+        IsCriticalBlock(callback: (player : TSPlayer, mutable : TSMutable<bool,bool>, flag : bool)=>void);
+        CompletedQuestAtMaxLevel(callback: (quest : TSQuest, player : TSPlayer)=>void);
+        // @duskhaven-port-end
     }
 
     export class Account<T> {
@@ -8594,6 +8635,26 @@ declare namespace _hidden {
 
         OnResistAbsorbCalculate(callback: (spelL: TSSpell, damage: TSDamageInfo, resistAmount: TSMutableNumber<uint32>, absorbAmount: TSMutableNumber<int32>, cancel: TSMutable<boolean,boolean> )=>void)
         OnResistAbsorbCalculate(id: EventID, callback: (spelL: TSSpell, damage: TSDamageInfo, resistAmount: TSMutableNumber<uint32>, absorbAmount: TSMutableNumber<int32>, cancel: TSMutable<boolean,boolean> )=>void)
+        // @duskhaven-port-begin
+        OnCalcProcChanceEarly(callback: (procEventInfo : TSProcEventInfo, chance : TSMutableNumber<float>)=>void);
+        OnCalcProcChanceLate(callback: (procEventInfo : TSProcEventInfo, chance : TSMutableNumber<float>)=>void);
+        OnPrepared(callback: (spell : TSSpell, flag : bool)=>void);
+        OnAuraApplied(callback: (unit : TSUnit, aura : TSAura, unit2 : TSUnit)=>void);
+        OnAuraRemoved(callback: (aura : TSAura, unit : TSUnit, n : TSNumber<uint32>)=>void);
+        OnHeal(callback: (unit : TSUnit, unit2 : TSUnit, value : TSMutableNumber<uint32>)=>void);
+        OnCustomMechanicMaskDamage(callback: (unit : TSUnit, spellInfo : TSSpellInfo, value : TSMutableNumber<uint32>)=>void);
+        OnSuccessfulInterrupt(callback: (caster : TSUnit, who : TSUnit, spell : TSSpell)=>void);
+        OnJumpStart(callback: (spellInfo : TSSpellInfo, unit : TSUnit, value : TSMutableNumber<float>, value2 : TSMutableNumber<float>, n : TSNumber<float>, n2 : TSNumber<float>, n3 : TSNumber<float>, n4 : TSNumber<float>)=>void);
+        OnJumpEnd(callback: (spellInfo : TSSpellInfo, unit : TSUnit)=>void);
+        OnCastCancelled(callback: (unit : TSUnit, unit2 : TSUnit, spell : TSSpell, n : TSNumber<int32>, n2 : TSNumber<int32>)=>void);
+        OnSpellCastFinished(callback: (spell : TSSpell, unit : TSUnit, n : TSNumber<uint32>)=>void);
+        OnChannelFinished(callback: (spell : TSSpell, unit : TSUnit)=>void);
+        CanMoveWhileChanneling(callback: (spell : TSSpell, unit : TSUnit, mutable : TSMutable<bool,bool>)=>void);
+        OnCheckGCDCategory(callback: (spell : TSSpell, value : TSMutableNumber<uint32>)=>void);
+        OnEnergizeBySpell(callback: (unit : TSUnit, spellInfo : TSSpellInfo, n : TSNumber<uint8>, value : TSMutableNumber<int32>)=>void);
+        OnDynObjectRemove(callback: (unit : TSUnit, spellDestination : TSSpellDestination)=>void);
+        OnPAARemoved(callback: (unit : TSUnit, unit2 : TSUnit, dynObj : TSDynObj)=>void);
+        // @duskhaven-port-end
     }
 
     export class Creature<T> {
@@ -8889,6 +8950,20 @@ declare namespace _hidden {
           , gain: TSMutableNumber<uint32>
           , killer: TSPlayer
         )=>void)
+        // @duskhaven-port-begin
+        OnPetSummoned(callback: (unit : TSUnit, creature : TSCreature)=>void);
+        OnPetDespawn(callback: (creature : TSCreature, player : TSPlayer)=>void);
+        OnDamageTaken(callback: (creature : TSCreature, unit : TSUnit, n : TSNumber<uint32>)=>void);
+        OnPetUpdateResistance(callback: (creature : TSCreature, player : TSPlayer, value : TSMutableNumber<float>, school : TSNumber<uint32>)=>void);
+        OnPetUpdateArmor(callback: (creature : TSCreature, player : TSPlayer, value : TSMutableNumber<float>)=>void);
+        OnPetUpdateMaxHealth(callback: (creature : TSCreature, player : TSPlayer, value : TSMutableNumber<float>)=>void);
+        OnPetUpdateMaxPower(callback: (creature : TSCreature, player : TSPlayer, value : TSMutableNumber<float>, powerType : TSNumber<int8>)=>void);
+        OnPetUpdateAttackPowerDamage(callback: (creature : TSCreature, player : TSPlayer, base : TSMutableNumber<float>, mod : TSMutableNumber<float>, multiplier : TSMutableNumber<float>, ranged : bool)=>void);
+        OnPetUpdateDamagePhysical(callback: (creature : TSCreature, player : TSPlayer, value : TSMutableNumber<float>, value2 : TSMutableNumber<float>, n : TSNumber<float>, attType : TSNumber<uint8>)=>void);
+        OnPetUpdateStat(callback: (creature : TSCreature, player : TSPlayer, value : TSMutableNumber<float>, value2 : TSMutableNumber<float>, stat : TSNumber<uint32>)=>void);
+        OnGuardianUpdateDamagePhysical(callback: (creature : TSCreature, player : TSPlayer, value : TSMutableNumber<float>, attType : TSNumber<uint8>)=>void);
+        InitPetSpells(callback: (creature : TSCreature, player : TSPlayer)=>void);
+        // @duskhaven-port-end
     }
 
     export class Quest<T> {
@@ -8959,6 +9034,9 @@ declare namespace _hidden {
           , player: TSPlayer
           , reward: TSMutableNumber<uint32>
         )=>void)
+        // @duskhaven-port-begin
+        OnQuestRewardItem(callback: (quest : TSQuest, player : TSPlayer, item : TSItem)=>void);
+        // @duskhaven-port-end
     }
 
     export class Unit {
@@ -9037,6 +9115,14 @@ declare namespace _hidden {
         OnEnterCombatWith(callback: (me: TSUnit, other: TSUnit)=>void);
         OnExitCombatWith(callback: (me: TSUnit, other: TSUnit)=>void);
         OnSetTarget(callback: (me: TSUnit, selection: uint64, oldSelection: uint64)=>void)
+        // @duskhaven-port-begin
+        OnCalcMissChanceAgainst(callback: (unit : TSUnit, unit2 : TSUnit, value : TSMutableNumber<float>)=>void);
+        OnDamageDealt(callback: (unit : TSUnit, unit2 : TSUnit, n : TSNumber<uint32>)=>void);
+        OnDamageTaken(callback: (unit : TSUnit, unit2 : TSUnit, n : TSNumber<uint32>)=>void);
+        OnRageGainedViaAttack(callback: (unit : TSUnit, unit2 : TSUnit, n : TSNumber<uint8>, rage_damage : TSMutableNumber<uint32>)=>void);
+        OnCustomDamageTaken(callback: (unit : TSUnit, unit2 : TSUnit, value : TSMutableNumber<uint32>)=>void);
+        OnUpdateDisplayPower(callback: (unit : TSUnit, value : TSMutableNumber<int8>)=>void);
+        // @duskhaven-port-end
     }
 
     export class Battleground<T> {
@@ -9236,6 +9322,9 @@ declare namespace _hidden {
             , player: TSPlayer
             ) => void
         )
+        // @duskhaven-port-begin
+        OnReceiveNotInWorld(callback: (opcode : TSNumber<uint32>, packetRead : TSPacketRead, accountID : TSNumber<uint32>)=>void);
+        // @duskhaven-port-end
     }
 
     export class WorldPacket {
@@ -9314,6 +9403,9 @@ declare namespace _hidden {
 
         OnCalculateFeralAttackPower(callback: (item: TSItemTemplate, extra: TSNumber<int32>, result: TSMutableNumber<int32>)=>void);
         OnCalculateFeralAttackPower(id: EventID, callback: (item: TSItemTemplate, extra: TSNumber<int32>, result: TSMutableNumber<int32>)=>void);
+        // @duskhaven-port-begin
+        OnItemCrafted(callback: (item : TSItem, player : TSPlayer, count : TSNumber<uint32>)=>void);
+        // @duskhaven-port-end
     }
 
     export class GameObject<T> {
@@ -9364,6 +9456,9 @@ declare namespace _hidden {
 
         OnGenerateFishLoot(callback: (obj: TSGameObject, player: TSPlayer, loot: TSLoot, isJunk: bool)=>void)
         OnGenerateFishLoot(id: EventID, callback: (obj: TSGameObject, player: TSPlayer, loot: TSLoot, isJunk: bool)=>void)
+        // @duskhaven-port-begin
+        OnTrapTriggered(callback: (gameObject : TSGameObject, unit : TSUnit, unit2 : TSUnit)=>void);
+        // @duskhaven-port-end
     }
 
     export class Map<T> {
@@ -9455,6 +9550,13 @@ declare namespace _hidden {
 
         OnLoadObjectData(callback: (instance: TSInstance)=>void): T
         OnLoadObjectData(id: EventID, callback: (instance: TSInstance)=>void): T
+        // @duskhaven-port-begin
+        OnRaidBossKilled(callback: (instance : TSInstance, source : TSUnit)=>void);
+        OnDungeonBossKilled(callback: (instance : TSInstance, source : TSUnit)=>void);
+        OnDungeonCompleted(callback: (instance : TSInstance)=>void);
+        ResetInstance(callback: (instance : TSInstance)=>void);
+        HandleRelease(callback: (instance : TSInstance, player : TSPlayer, handled : TSMutable<bool,bool>)=>void);
+        // @duskhaven-port-end
     }
 
     export class AuctionHouse<T> {

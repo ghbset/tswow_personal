@@ -20,6 +20,22 @@
 #include "TSItem.h"
 #include "TSBase.h"
 #include "TSLua.h"
+#include "CustomPacketDefines.h"
+
+#include <unordered_map>
+
+// @duskhaven-port-begin TSGlobal
+extern TC_GAME_API std::unordered_map<opcode_t, bool> notInWorldCustomOpcodeMap;
+void TC_GAME_API RegisterPacketForNotInWorld(opcode_t opcode, bool isActive);
+
+std::string TC_GAME_API santizeForDB(std::string const& input);
+
+void TC_GAME_API KickAll();
+
+bool TC_GAME_API IsNumber(std::string const& value);
+
+std::string TC_GAME_API ToFixed(double value, uint32_t digits = 0);
+// @duskhaven-port-end TSGlobal
 
 TSItemTemplate TC_GAME_API CreateItemTemplate(uint32 entry,uint32 copyItemID = 38);
 

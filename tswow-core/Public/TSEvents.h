@@ -42,6 +42,7 @@
 #include "TSDamageInfo.h"
 #include "TSSpell.h"
 #include "TSWeather.h"
+#include "TSDynObj.h"
 
 #include <cstdint>
 
@@ -179,6 +180,8 @@ struct TSEvents
          EVENT(OnQuestStatusChange, TSPlayer, TSNumber<uint32>)
          EVENT(OnMovieComplete, TSPlayer, TSNumber<uint32>)
          EVENT(OnPlayerRepop, TSPlayer)
+         // Pre-existing in-progress feature (tracks source spell of resurrect)
+         EVENT(OnResurrect, TSPlayer, TSNumber<uint32>)
          EVENT(OnSendMail, TSPlayer, TSMailDraft, TSMutableNumber<uint32>)
 
          EVENT(OnGenerateItemLoot, TSPlayer, TSItem, TSLoot, TSNumber<uint32>)
@@ -343,6 +346,63 @@ struct TSEvents
             , TSCreature creature
             , TSMutableNumber<float> money
          )
+
+         // @duskhaven-port-begin PlayerEvents
+        EVENT(OnCalcIntellectCritBonus
+             , TSPlayer
+             , TSMutableNumber<float>
+         );
+        EVENT(OnCalcBlockValueFlat
+             , TSPlayer
+             , TSMutableNumber<float>
+         );
+        EVENT(OnCalcBlockValuePctMod
+             , TSPlayer
+             , TSMutableNumber<float>
+         );
+        EVENT(OnCalcDodgeFromAgility
+             , TSPlayer
+             , TSMutableNumber<float>
+         );
+        EVENT(OnUpdateStats
+             , TSPlayer
+             , TSMutableNumber<float>
+             , TSNumber<uint32>
+        );
+        EVENT(OnCalcAgilityCritBonus, TSPlayer, TSMutableNumber<float> , TSNumber<float>);
+        EVENT(OnSuccessfulInterrupt, TSPlayer player, TSUnit who, TSSpell spell)
+        EVENT(OnCustomScriptedDamageDoneMod, TSPlayer player, TSUnit against, TSSpellInfo spellInfo, TSNumber<uint8> DamageType, TSNumber<uint8> AttackType, TSMutableNumber<float> DoneTotalMod, TSMutableNumber<uint32> Damage, bool IsPet)
+        EVENT(OnCustomScriptedDamageTakenMod, TSPlayer player, TSUnit against, TSSpellInfo spellInfo, TSNumber<uint8> DamageType, TSNumber<uint8> AttackType, TSMutableNumber<float> TakenTotalMod, TSNumber<uint8> SpellType)
+        EVENT(OnCustomScriptedCritMod, TSPlayer Caster, TSUnit Against, TSSpellInfo SpellInfo, TSMutableNumber<float> CritChance)
+        EVENT(OnCustomScriptedHealMod, TSPlayer caster, TSUnit Against, TSSpellInfo SpellInfo, TSMutableNumber<float> DoneTotalMod)
+        EVENT(OnPowerSpent, TSPlayer Caster, TSNumber<uint8> PowerType, TSNumber<int32> PowerCost)
+        EVENT(OnEnchantTriggered, TSPlayer player, TSUnit target, TSItem item, TSSpellInfo spellInfo)
+        EVENT(OnCustomScriptedCritDamageMod, TSPlayer Caster, TSUnit Against, TSSpellInfo SpellInfo, TSMutableNumber<float> CritDamMod)
+        EVENT(OnCustomScriptedCritHealingMod, TSPlayer Caster, TSUnit Against, TSSpellInfo SpellInfo, TSMutableNumber<float> CritDamMod)
+        EVENT(OnCustomScriptedAutoattackMod, TSPlayer player, TSUnit against, TSMutableNumber<float> DoneTotalMod, TSMutableNumber<uint32> Damage, TSNumber<uint8> attackType, bool IsPet)
+        EVENT(OnCustomScriptedAutoattackDamageTakenMod, TSPlayer player, TSUnit attacker, TSMutableNumber<float> TakenTotalMod, TSMutableNumber<uint32> Damage)
+        EVENT(ScriptedArmorPenMod, TSPlayer player, TSUnit against, TSMutableNumber<float> arpPct)
+        EVENT(OnUpdateSpellHealing, TSPlayer, TSMutableNumber<int32>)
+        EVENT(OnUpdateSpellDamage, TSPlayer, TSMutableNumber<int32>, TSNumber<uint8>)
+        EVENT(OnRunesSpent, TSPlayer, TSNumber<uint8>)
+        EVENT(OnRunicGainedFromSpell, TSSpell, TSPlayer, TSUnit, TSMutableNumber<int32>)
+        EVENT(OnPowerChanged, TSPlayer, TSNumber<uint8>, TSNumber<uint32>, TSNumber<uint32>)
+        EVENT(BeforeModifyPower, TSPlayer, TSNumber<uint8>, TSMutableNumber<int32>)
+        EVENT(OnCalcFallDamage, TSPlayer, TSMutableNumber<uint32>)
+        EVENT(GainComboPoint, TSPlayer, TSNumber<int8>)
+        EVENT(OnEquipMainhandWeapon, TSPlayer, TSItem)
+        EVENT(OnUnequipMainhandWeapon, TSPlayer, TSItem)
+        EVENT(OnEquipOffhandWeapon, TSPlayer, TSItem)
+        EVENT(OnUnequipOffhandWeapon, TSPlayer, TSItem)
+        EVENT(OnActionButtonSet, TSPlayer, TSNumber<uint8>, TSNumber<uint32>, TSNumber<uint8>)
+        EVENT(OnActionButtonDelete, TSPlayer, TSNumber<uint8>, TSNumber<uint32>, TSNumber<uint8>)
+        EVENT(ScaleRegenByHaste, TSPlayer, TSMutableNumber<float>)
+        EVENT(OnTempEnchant, TSPlayer, TSNumber<uint32>)
+        EVENT(OnLossOfControl, TSPlayer)
+        EVENT(OnControlRegained, TSPlayer)
+        EVENT(IsCriticalBlock, TSPlayer, TSMutable<bool,bool>, bool)
+        EVENT(CompletedQuestAtMaxLevel, TSQuest quest, TSPlayer player)
+         // @duskhaven-port-end PlayerEvents
     } Player;
 
     struct AccountEvents
@@ -450,6 +510,19 @@ struct TSEvents
         EVENT(OnSetTarget, TSUnit, TSNumber<uint64> new_target, TSNumber<uint64> old_target)
         EVENT(OnLiquidStatusChanged, TSUnit, TSMutableNumber<uint32> newStatus);
         EVENT(OnOutdoorsChanged, TSUnit, TSMutable<bool,bool> isOutdoors);
+
+         // @duskhaven-port-begin UnitEvents
+        EVENT(OnCalcMissChanceAgainst
+            , TSUnit
+            , TSUnit
+            , TSMutableNumber<float>
+        )
+        EVENT(OnDamageDealt, TSUnit, TSUnit, TSNumber<uint32>)
+        EVENT(OnDamageTaken, TSUnit, TSUnit, TSNumber<uint32>)
+        EVENT(OnRageGainedViaAttack, TSUnit, TSUnit, TSNumber<uint8>, TSMutableNumber<uint32> rage_damage)
+        EVENT(OnCustomDamageTaken, TSUnit, TSUnit, TSMutableNumber<uint32>)
+        EVENT(OnUpdateDisplayPower, TSUnit, TSMutableNumber<int8>)
+         // @duskhaven-port-end UnitEvents
     } Unit;
 
     struct SpellEvents : public TSMappedEventsRegistry
@@ -522,6 +595,27 @@ struct TSEvents
         ID_EVENT(OnObjectAreaTargetSelect, TSSpell, TSWorldObjectCollection, TSNumber<uint32> index, TSSpellImplicitTargetInfo, TSMutable<bool,bool> cancelDefault)
         ID_EVENT(OnObjectTargetSelect, TSSpell, TSMutableWorldObject, TSNumber<uint32> index, TSSpellImplicitTargetInfo, TSMutable<bool,bool> cancelDefault)
         ID_EVENT(OnOnResistAbsorbCalculate, TSSpell, TSDamageInfo, TSMutableNumber<uint32> resistAmount, TSMutableNumber<int32> absorbAmount, TSMutable<bool,bool> cancelDefault)
+
+         // @duskhaven-port-begin SpellEvents
+        ID_EVENT(OnCalcProcChanceEarly, TSProcEventInfo, TSMutableNumber<float> chance)
+        ID_EVENT(OnCalcProcChanceLate, TSProcEventInfo, TSMutableNumber<float> chance)
+        ID_EVENT(OnPrepared, TSSpell, bool)
+        ID_EVENT(OnAuraApplied, TSUnit, TSAura, TSUnit)
+        ID_EVENT(OnAuraRemoved, TSAura, TSUnit, TSNumber<uint32>)
+        ID_EVENT(OnHeal, TSUnit, TSUnit, TSMutableNumber<uint32>)
+        ID_EVENT(OnCustomMechanicMaskDamage, TSUnit, TSSpellInfo, TSMutableNumber<uint32>)
+        ID_EVENT(OnSuccessfulInterrupt, TSUnit caster, TSUnit who, TSSpell spell)
+        ID_EVENT(OnJumpStart, TSSpellInfo, TSUnit, TSMutableNumber<float>, TSMutableNumber<float>, TSNumber<float>, TSNumber<float>, TSNumber<float>, TSNumber<float>)
+        ID_EVENT(OnJumpEnd, TSSpellInfo, TSUnit)
+        ID_EVENT(OnCastCancelled, TSUnit, TSUnit, TSSpell, TSNumber<int32>, TSNumber<int32>)
+        ID_EVENT(OnSpellCastFinished, TSSpell, TSUnit, TSNumber<uint32>)
+        ID_EVENT(OnChannelFinished, TSSpell, TSUnit)
+        ID_EVENT(CanMoveWhileChanneling, TSSpell, TSUnit, TSMutable<bool, bool>)
+        ID_EVENT(OnCheckGCDCategory, TSSpell, TSMutableNumber<uint32>)
+        ID_EVENT(OnEnergizeBySpell, TSUnit, TSSpellInfo, TSNumber<uint8>, TSMutableNumber<int32>)
+        ID_EVENT(OnDynObjectRemove, TSUnit, TSSpellDestination)
+        ID_EVENT(OnPAARemoved, TSUnit, TSUnit, TSDynObj)
+         // @duskhaven-port-end SpellEvents
     } Spell;
 
     struct CreatureEvents : public TSMappedEventsRegistry
@@ -654,6 +748,26 @@ struct TSEvents
             , TSMutableNumber<uint32>
             , TSPlayer killer
         )
+
+         // @duskhaven-port-begin CreatureEvents
+        ID_EVENT(OnPetSummoned, TSUnit, TSCreature)
+        ID_EVENT(OnPetDespawn, TSCreature, TSPlayer)
+        ID_EVENT(OnDamageTaken, TSCreature, TSUnit, TSNumber<uint32>)
+        ID_EVENT(OnPetUpdateResistance, TSCreature, TSPlayer, TSMutableNumber<float>, TSNumber<uint32> school)
+        ID_EVENT(OnPetUpdateArmor, TSCreature, TSPlayer, TSMutableNumber<float>)
+        ID_EVENT(OnPetUpdateMaxHealth, TSCreature, TSPlayer, TSMutableNumber<float>)
+        ID_EVENT(OnPetUpdateMaxPower, TSCreature, TSPlayer, TSMutableNumber<float>, TSNumber<int8> powerType)
+        ID_EVENT(OnPetUpdateAttackPowerDamage, TSCreature, TSPlayer, TSMutableNumber<float> base, TSMutableNumber<float> mod, TSMutableNumber<float> multiplier, bool ranged)
+        ID_EVENT(OnPetUpdateDamagePhysical, TSCreature, TSPlayer, TSMutableNumber<float>, TSMutableNumber<float>, TSNumber<float>, TSNumber<uint8> attType)
+        ID_EVENT(OnPetUpdateStat, TSCreature, TSPlayer, TSMutableNumber<float>, TSMutableNumber<float>, TSNumber<uint32> stat)
+        ID_EVENT(OnGuardianUpdateDamagePhysical
+            , TSCreature
+            , TSPlayer
+            , TSMutableNumber<float>
+            , TSNumber<uint8> attType
+        )
+        ID_EVENT(InitPetSpells, TSCreature, TSPlayer)
+         // @duskhaven-port-end CreatureEvents
     } Creature;
 
     struct GameObjectEvents : public TSMappedEventsRegistry
@@ -677,6 +791,10 @@ struct TSEvents
         ID_EVENT(OnQuestReward, TSGameObject, TSPlayer, TSQuest, TSNumber<uint32>)
         ID_EVENT(OnGenerateLoot, TSGameObject, TSPlayer)
         ID_EVENT(OnGenerateFishLoot, TSGameObject, TSPlayer, TSLoot, bool)
+
+         // @duskhaven-port-begin GameObjectEvents
+        ID_EVENT(OnTrapTriggered, TSGameObject, TSUnit, TSUnit)
+         // @duskhaven-port-end GameObjectEvents
     } GameObject;
 
     struct MapEvents : public TSMappedEventsDirect {
@@ -694,6 +812,9 @@ struct TSEvents
         ID_EVENT(OnCheckEncounter, TSMap, TSPlayer)
         ID_EVENT(OnWeatherUpdate, TSMap, TSWeather)
         ID_EVENT(OnWeatherChange, TSMap, TSWeather)
+
+         // @duskhaven-port-begin MapEvents
+         // @duskhaven-port-end MapEvents
     } Map;
 
     struct BattlegroundEvents : public TSMappedEventsDirect
@@ -796,6 +917,14 @@ struct TSEvents
         ID_EVENT(OnLoadMinionData, TSInstance)
         ID_EVENT(OnLoadDoorData, TSInstance)
         ID_EVENT(OnLoadObjectData, TSInstance)
+
+         // @duskhaven-port-begin InstanceEvents
+        ID_EVENT(OnRaidBossKilled, TSInstance, TSUnit source)
+        ID_EVENT(OnDungeonBossKilled, TSInstance, TSUnit source)
+        ID_EVENT(OnDungeonCompleted, TSInstance)
+        ID_EVENT(ResetInstance, TSInstance)
+        ID_EVENT(HandleRelease, TSInstance, TSPlayer player, TSMutable<bool,bool> handled)
+         // @duskhaven-port-end InstanceEvents
     } Instance;
 
      struct ItemEvents : public TSMappedEventsRegistry
@@ -821,6 +950,10 @@ struct TSEvents
          ID_EVENT(OnDestroyEarly, TSItem, TSPlayer, TSMutable<bool,bool>)
          ID_EVENT(OnTakenAsLoot, TSItem, TSLootItem, TSLoot, TSPlayer)
          ID_EVENT(OnCalculateFeralAttackPower, TSItemTemplate, TSNumber<int32>, TSMutableNumber<int32> result)
+
+         // @duskhaven-port-begin ItemEvents
+         ID_EVENT(OnItemCrafted, TSItem, TSPlayer, TSNumber<uint32> count)
+         // @duskhaven-port-end ItemEvents
      } Item;
 
     struct QuestEvents : public TSMappedEventsRegistry
@@ -833,6 +966,10 @@ struct TSEvents
         ID_EVENT(OnObjectiveProgress, TSQuest, TSPlayer, TSNumber<uint32>, TSNumber<uint16>)
         ID_EVENT(OnStatusChanged, TSQuest, TSPlayer)
         ID_EVENT(OnRewardXP, TSQuest, TSPlayer, TSMutableNumber<uint32>)
+
+         // @duskhaven-port-begin QuestEvents
+        ID_EVENT(OnQuestRewardItem, TSQuest, TSPlayer, TSItem)
+         // @duskhaven-port-end QuestEvents
     } Quest;
 
     struct AreaTriggerEvents : public TSMappedEventsDirect {
@@ -862,6 +999,10 @@ struct TSEvents
     struct CustomPacketEvents : public TSMappedEventsDirect {
         EVENTS_HEADER(CustomPacketEvents)
         ID_EVENT(OnReceive, TSNumber<uint32> opcode, TSPacketRead, TSPlayer)
+
+         // @duskhaven-port-begin CustomPacketEvents
+        ID_EVENT(OnReceiveNotInWorld, TSNumber<uint32> opcode, TSPacketRead, TSNumber<uint32> accountID)
+         // @duskhaven-port-end CustomPacketEvents
     } CustomPacket;
 
     struct WorldPacketEvents : public TSMappedEventsDirect {

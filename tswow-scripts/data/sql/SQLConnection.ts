@@ -228,6 +228,8 @@ export class SqlConnection {
     static world_src = new Connection(NodeConfig.DatabaseSettings('world_source',datasetName))
 
     private static query_cache: {[table: string]: {[query: string]: boolean}} = {}
+    private static query_cache_size = 0;
+    private static readonly MAX_CACHE_SIZE = 10000;  // Limit cache to 10k entries
 
     protected static endConnection() {
         Connection.end(this.auth);
@@ -242,6 +244,13 @@ export class SqlConnection {
         this.endConnection();
         [this.auth,this.world_dst,this.world_src]
             .forEach((x)=>Connection.connect(x));
+        // Clear query cache on reconnect
+        this.clearQueryCache();
+    }
+
+    static clearQueryCache() {
+        this.query_cache = {};
+        this.query_cache_size = 0;
     }
 
     static getRows<C, Q, T extends SqlRow<C, Q>>(table: SqlTable<C, Q, T>, where: Q, first: boolean) {
@@ -253,7 +262,16 @@ export class SqlConnection {
         if(tableCache[whereLookup]) {
             return [];
         }
+
+        // Enforce cache size limit to prevent memory leak
+        if(this.query_cache_size >= this.MAX_CACHE_SIZE) {
+            // Clear cache when limit reached
+            this.clearQueryCache();
+            tableCache = this.query_cache[table.name] = {};
+        }
+
         tableCache[whereLookup] = true;
+        this.query_cache_size++;
 
         const sqlStr = `SELECT * FROM ${table.name} ${whereSql.length > 1 ? ` WHERE ${whereSql}` : ''} ${first ? 'LIMIT 1' : ''};`;
         const res = SqlConnection.querySource(sqlStr);

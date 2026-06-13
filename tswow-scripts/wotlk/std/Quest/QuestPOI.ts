@@ -125,6 +125,10 @@ export class QuestPOIs extends MultiRowSystem<QuestPOI,Quest> {
             .Flags.set(3)
             .Floor.set(0)
             .Map.set(map)
+            .WorldMapArea.set(area.ID)   // FIX: 'area' was computed (auto or from the
+                                         // worldMapArea arg) but never written, so the
+                                         // POI defaulted to a wrong WorldMapAreaId and
+                                         // didn't render. Write it.
             .Points.add(points)
 
         return this.owner;

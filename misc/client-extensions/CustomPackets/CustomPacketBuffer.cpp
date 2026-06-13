@@ -17,7 +17,7 @@ CustomPacketBuffer::~CustomPacketBuffer()
     m_cur.Destroy();
 }
 
-CustomPacketResult CustomPacketBuffer::ReceivePacket(chunkSize_t size, char* data)
+CustomPacketResult CustomPacketBuffer::ReceivePacket(chunkSize_t size, char* data, bool skipSuccess)
 {
     // Check sizes
 
@@ -46,6 +46,9 @@ CustomPacketResult CustomPacketBuffer::ReceivePacket(chunkSize_t size, char* dat
         return _onError(CustomPacketResult::INVALID_FRAG_COUNT, data);
     case 1:
         AppendFragment(chnk, true);
+        // @duskhaven-port: caller wants to inspect opcode before firing
+        if (skipSuccess)
+            return CustomPacketResult::HANDLED_MESSAGE;
         return _onSuccess();
     default:
         if (m_cur.ChunkCount() == 0)
@@ -81,6 +84,9 @@ CustomPacketResult CustomPacketBuffer::ReceivePacket(chunkSize_t size, char* dat
             && hdr->fragmentId == m_cur.Chunk(0)->Header()->totalFrags - 1
         ) {
             AppendFragment(chnk, true);
+            // @duskhaven-port
+            if (skipSuccess)
+                return CustomPacketResult::HANDLED_MESSAGE;
             return _onSuccess();
         }
         else
@@ -114,6 +120,19 @@ CustomPacketResult CustomPacketBuffer::_onSuccess()
     }
     m_cur.Clear();
     return CustomPacketResult::HANDLED_MESSAGE;
+}
+
+// @duskhaven-port
+CustomPacketResult CustomPacketBuffer::callOnSuccess()
+{
+    return _onSuccess();
+}
+
+void CustomPacketBuffer::clearPacket()
+{
+    for (chunkCount_t i = 0; i < m_cur.m_chunks.size(); ++i)
+        m_cur.m_chunks[i].Destroy();
+    m_cur.Clear();
 }
 
 void CustomPacketBuffer::AppendFragment(CustomPacketChunk & chunk, bool isLast)

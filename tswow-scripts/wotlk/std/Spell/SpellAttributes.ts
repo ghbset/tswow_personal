@@ -127,9 +127,19 @@ export class SpellAttributes<T> extends MaskCell<T> {
     get IS_PASSIVE() { return this.bit(6); }
 
     /**
-     * No comment (yet!)
+     * Hides the spell from the client entirely: spellbook, aura bar, and
+     * combat log. Maps to SPELL_ATTR0_HIDDEN_CLIENTSIDE (0x80).
+     *
+     * @deprecated Use HIDDEN_CLIENTSIDE instead — this name is misleading
+     * because the flag hides from the aura bar too, not just the spellbook.
      */
     get IS_HIDDEN_IN_SPELLBOOK() { return this.bit(7); }
+
+    /**
+     * Hides the spell from the client entirely: spellbook, aura bar, and
+     * combat log. Maps to SPELL_ATTR0_HIDDEN_CLIENTSIDE (0x80).
+     */
+    get HIDDEN_CLIENTSIDE() { return this.bit(7); }
 
     /**
      * No comment (yet!)

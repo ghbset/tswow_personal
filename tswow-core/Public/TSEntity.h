@@ -18,6 +18,7 @@
 
 #include "TSBase.h"
 #include "TSJson.h"
+#include "TSLua.h"
 
 #include "sol/sol.hpp"
 
@@ -76,6 +77,16 @@ public:
     TSJsonObject m_json;
     std::map<std::string, ModTable> m_lua_tables;
     TSEntity * operator->(){return this;}
+    // sol::table members hold lua registry refs; entity dtors run on map
+    // threads, so releasing them must be serialized with lua execution
+    ~TSEntity()
+    {
+        if (!m_lua_tables.empty())
+        {
+            TSWOW_LUA_GUARD
+            m_lua_tables.clear();
+        }
+    }
 };
 
 // The class extended by TSObject/TSMap

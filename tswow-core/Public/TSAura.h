@@ -56,6 +56,8 @@ class TC_GAME_API TSAuraEffect : public TSEntityProvider {
     void ResetPeriodic();
     void ResetTicks();
     bool IsPeriodic();
+    // @duskhaven-port
+    TSNumber<uint32> GetTriggerSpell();
 };
 
 class AuraApplication;
@@ -93,6 +95,9 @@ public:
     TSArray<TSAuraApplication> GetApplications();
     void SetDuration(int32 duration);
     void SetMaxDuration(int32 duration);
+    // @duskhaven-port
+    bool ModStackAmount(int32 number, uint8 removeMode = 0, bool resetTimer = true);
+    void ModifyDuration(int32 time);
     void SetStackAmount(uint8 amount);
     void Remove();
 private:

@@ -4,6 +4,8 @@
 #include "WorldPacket.h"
 #include "CustomPacketChunk.h"
 #include "Player.h"
+#include "WorldSession.h"
+#include "World.h"
 
 #include "TSMap.h"
 #include "Map.h"
@@ -65,6 +67,22 @@ void TSPacketWrite::BroadcastAround(TSWorldObject obj, float range, bool self)
 	write->Destroy();
 }
 
+// @duskhaven-port
+void TSPacketWrite::SendToNotInWorld(uint32 accountID)
+{
+	if (WorldSession* session = sWorld->FindSession(accountID))
+	{
+		auto& arr = write->buildMessages();
+		for (auto& chunk : arr)
+		{
+			WorldPacket packet(SERVER_TO_CLIENT_OPCODE, chunk.FullSize());
+			packet.append((uint8_t*)chunk.Data(), chunk.FullSize());
+			session->SendPacket(&packet);
+		}
+	}
+	write->Destroy();
+}
+
 TSServerBuffer::TSServerBuffer(TSPlayer player)
 	: CustomPacketBuffer(
 		  MIN_FRAGMENT_SIZE
@@ -72,6 +90,18 @@ TSServerBuffer::TSServerBuffer(TSPlayer player)
 		, MAX_FRAGMENT_SIZE
 	)
 	, m_player(player)
+{
+}
+
+// @duskhaven-port - not-in-world constructor
+TSServerBuffer::TSServerBuffer(uint32 accountID)
+	: CustomPacketBuffer(
+		  MIN_FRAGMENT_SIZE
+		, BUFFER_QUOTA
+		, MAX_FRAGMENT_SIZE
+	)
+	, m_player(nullptr)
+	, m_account_id(accountID)
 {
 }
 
@@ -85,40 +115,79 @@ void TSServerBuffer::OnPacket(CustomPacketRead* value)
 	TSPacketRead read(value);
 	opcode_t opcode = value->Opcode();
 
-	auto& cbs = ts_events.CustomPacket.OnReceive_callbacks;
-	for (auto const& cb : cbs.m_cxx_callbacks)
+	if (m_player)
 	{
-			cb(opcode, read, m_player);
-	}
+		auto& cbs = ts_events.CustomPacket.OnReceive_callbacks;
+		for (auto const& cb : cbs.m_cxx_callbacks)
+		{
+				cb(opcode, read, m_player);
+		}
 
-	for (auto const& cb : cbs.m_lua_callbacks)
-	{
-			cb(opcode, read, m_player);
-			value->Reset();
-	}
+		for (auto const& cb : cbs.m_lua_callbacks)
+		{
+				cb(opcode, read, m_player);
+				value->Reset();
+		}
 
-	if (opcode < cbs.m_id_cxx_callbacks.size())
-	{
-			for (auto const& cb : cbs.m_id_cxx_callbacks[opcode])
-			{
-					cb(opcode, read, m_player);
-					value->Reset();
-			}
-	}
+		if (opcode < cbs.m_id_cxx_callbacks.size())
+		{
+				for (auto const& cb : cbs.m_id_cxx_callbacks[opcode])
+				{
+						cb(opcode, read, m_player);
+						value->Reset();
+				}
+		}
 
-	if (opcode < cbs.m_id_lua_callbacks.size())
+		if (opcode < cbs.m_id_lua_callbacks.size())
+		{
+				for (auto const& cb : cbs.m_id_lua_callbacks[opcode])
+				{
+						cb(opcode, read, m_player);
+						value->Reset();
+				}
+		}
+	}
+	else
 	{
-			for (auto const& cb : cbs.m_id_lua_callbacks[opcode])
-			{
-					cb(opcode, read, m_player);
-					value->Reset();
-			}
+		// @duskhaven-port - NotInWorld mode: fire OnReceiveNotInWorld callbacks
+		auto& cbs = ts_events.CustomPacket.OnReceiveNotInWorld_callbacks;
+		for (auto const& cb : cbs.m_cxx_callbacks)
+		{
+				cb(opcode, read, m_account_id);
+				value->Reset();
+		}
+
+		for (auto const& cb : cbs.m_lua_callbacks)
+		{
+				cb(opcode, read, m_account_id);
+				value->Reset();
+		}
+
+		if (opcode < cbs.m_id_cxx_callbacks.size())
+		{
+				for (auto const& cb : cbs.m_id_cxx_callbacks[opcode])
+				{
+						cb(opcode, read, m_account_id);
+						value->Reset();
+				}
+		}
+
+		if (opcode < cbs.m_id_lua_callbacks.size())
+		{
+				for (auto const& cb : cbs.m_id_lua_callbacks[opcode])
+				{
+						cb(opcode, read, m_account_id);
+						value->Reset();
+				}
+		}
 	}
 }
 
 void TSServerBuffer::OnError(CustomPacketResult error)
 {
-	m_player.player->GetSession()->KickPlayer("Custom packet error: "+std::to_string(uint32_t(error)));
+	if (m_player && m_player.player)
+		m_player.player->GetSession()->KickPlayer("Custom packet error: "+std::to_string(uint32_t(error)));
+	// not-in-world buffer is ephemeral; errors are silently dropped
 }
 
 TSPacketWrite CreateCustomPacket(

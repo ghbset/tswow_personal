@@ -52,6 +52,8 @@ public:
 	void SendToPlayer(TSPlayer player);
 	void BroadcastMap(TSMap map, uint32_t teamOnly = 0);
 	void BroadcastAround(TSWorldObject obj, float range, bool self = true);
+	// @duskhaven-port - send to a session whose character is not yet in world
+	void SendToNotInWorld(uint32 accountID);
 };
 
 class TC_GAME_API TSPacketRead
@@ -96,7 +98,10 @@ class TSServerBuffer : public CustomPacketBuffer
 {
 public:
 	TSServerBuffer(TSPlayer player);
+	// @duskhaven-port - not-in-world mode (no player, just account id)
+	TSServerBuffer(uint32 accountID);
 	TSPlayer m_player = nullptr;
+	uint32 m_account_id = 0;
 	virtual void OnPacket(CustomPacketRead* value) override final;
 	virtual void OnError(CustomPacketResult error) override final;
 };
