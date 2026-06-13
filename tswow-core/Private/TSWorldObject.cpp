@@ -1205,7 +1205,10 @@ void TSWorldObject::DoDelayed(std::function<void(TSWorldObject, TSMainThreadCont
 void TSWorldObject::LDoDelayed(sol::protected_function callback)
 {
 #if TRINITY
-    obj->m_delayedLuaCallbacks.push_back(callback);
+    {
+        TSWOW_LUA_GUARD
+        obj->m_delayedLuaCallbacks.push_back(callback);
+    }
     obj->GetMap()->m_delayedGuids.insert(obj->GetGUID());
 #endif
 }

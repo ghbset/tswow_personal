@@ -111,7 +111,7 @@ private:
 		}\
 		void L##name(sol::protected_function cb)\
 		{\
-				name##_callbacks.m_lua_callbacks.push_back(cb);\
+				{ TSWOW_LUA_GUARD name##_callbacks.m_lua_callbacks.push_back(cb); }\
 				if(is_fn) fn_lua(cb);\
 		}\
 
@@ -136,6 +136,7 @@ private:
 		}\
 		void _L##name(uint32_t id, sol::protected_function cb)\
 		{\
+				TSWOW_LUA_GUARD\
 				uint32_t reg_id = get_registry_id(id);\
 				auto& cbs = name##_callbacks.m_id_lua_callbacks;\
 				if(reg_id >= cbs.size())\
@@ -181,9 +182,13 @@ private:
 						cb(__VA_ARGS__);\
 				}\
 				\
-				for(auto const& cb : ts_events.category.name##_callbacks.m_lua_callbacks)\
+				if(!ts_events.category.name##_callbacks.m_lua_callbacks.empty())\
 				{\
-						TSLua::handle_error(cb(__VA_ARGS__));\
+						TSWOW_LUA_GUARD\
+						for(auto const& cb : ts_events.category.name##_callbacks.m_lua_callbacks)\
+						{\
+								TSLua::handle_error(cb(__VA_ARGS__));\
+						}\
 				}\
 		}\
 
@@ -199,8 +204,9 @@ private:
 						}\
 				}\
 				auto const& lua_cbs = ts_events.category.name##_callbacks.m_id_lua_callbacks;\
-				if(ref < lua_cbs.size())\
+				if(ref < lua_cbs.size() && !lua_cbs[ref].empty())\
 				{\
+						TSWOW_LUA_GUARD\
 						for(auto const& cb: lua_cbs[ref])\
 						{\
 								try\

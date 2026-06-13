@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import { watchTsc } from "../util/CompileTS";
 import { ConfigFile, Property, Section } from "../util/ConfigFile";
 import { wfs } from "../util/FileSystem";
@@ -292,6 +293,105 @@ export class Datascripts {
         ).addAlias('datascript').addAlias('data')
     }
 
+    /**
+     * Returns the absolute path to the per-dataset datascripts freshness stamp.
+     * Touched at the end of every successful build; checked by
+     * Package.packageClient to avoid the ~30-minute redundant rebuild that
+     * runs unconditionally during `package client`.
+     */
+    private static stampPath(dataset: Dataset): string {
+        return dataset.path.join('.tswow', 'datascripts_stamp').get();
+    }
+
+    /**
+     * True if the dest datascripts output is up-to-date with respect to all
+     * tracked inputs:
+     *   - the compiled datascripts JS (captures `.ts` source edits via
+     *     each module's `datascripts/build/`)
+     *   - every module's `dbcs/*.json` (Turtle DBC dumps and similar)
+     *   - every module's `sql-data/*.json` (Turtle SQL row dumps)
+     *   - the wow data lib (`node_modules/wow/data/index.js`) — captures
+     *     tswow itself being updated/re-installed
+     *
+     * Returns false (i.e. "needs rebuild") if:
+     *   - no stamp exists yet
+     *   - `--rebuild` or `--force-rebuild-data` is in args
+     *   - any tracked input has a newer mtime than the stamp
+     *
+     * Errs on the side of rebuilding. The risk model: if we incorrectly
+     * skip, the user ships stale data — bad. If we incorrectly rebuild,
+     * the user waits 30 minutes — annoying but safe. So any new file or
+     * unknown input class causes a rebuild.
+     */
+    static isFresh(dataset: Dataset, args: string[] = []): boolean {
+        // Honour explicit overrides — both the normal --rebuild flag
+        // (which datascripts already treats as "full reset") and a new
+        // explicit escape hatch for paranoid callers.
+        if (args.includes('--rebuild')) return false;
+        if (args.includes('--force-rebuild-data')) return false;
+
+        const stampPath = this.stampPath(dataset);
+        if (!fs.existsSync(stampPath)) return false;
+        const stampMtime = fs.statSync(stampPath).mtimeMs;
+
+        let newestInput = 0;
+        const noteMtime = (abs: string) => {
+            try {
+                const m = fs.statSync(abs).mtimeMs;
+                if (m > newestInput) newestInput = m;
+            } catch (_) { /* missing file — ignore */ }
+        };
+
+        for (const mod of dataset.modules()) {
+            // (1) compiled datascripts JS — captures TS source edits.
+            if (mod.path.datascripts.build.exists()) {
+                mod.path.datascripts.build.iterate(
+                    'RECURSE', 'FILES', 'FULL',
+                    node => noteMtime(node.abs().get())
+                );
+            }
+            // (2) DBC JSON dumps (modules/<x>/dbcs/*.json).
+            const dbcsDir = mod.path.join('dbcs');
+            if (dbcsDir.exists()) {
+                dbcsDir.iterate(
+                    'RECURSE', 'FILES', 'FULL',
+                    node => noteMtime(node.abs().get())
+                );
+            }
+            // (3) SQL data dumps (modules/<x>/sql-data/*.json).
+            const sqlDataDir = mod.path.join('sql-data');
+            if (sqlDataDir.exists()) {
+                sqlDataDir.iterate(
+                    'RECURSE', 'FILES', 'FULL',
+                    node => noteMtime(node.abs().get())
+                );
+            }
+        }
+
+        // (4) wow data lib — captures tswow itself being updated.
+        if (ipaths.node_modules.wow.data.index.exists()) {
+            noteMtime(ipaths.node_modules.wow.data.index.get());
+        }
+
+        return stampMtime >= newestInput;
+    }
+
+    /**
+     * Touch the freshness stamp. Called at the end of a successful build.
+     */
+    private static touchStamp(dataset: Dataset): void {
+        const p = this.stampPath(dataset);
+        try {
+            const dir = require('path').dirname(p);
+            require('fs').mkdirSync(dir, { recursive: true });
+            require('fs').writeFileSync(p, String(Date.now()));
+        } catch (e) {
+            // Non-fatal: failing to write the stamp just means the next
+            // package call will rebuild unnecessarily.
+            term.warn('datascripts', `Could not write freshness stamp: ${e}`);
+        }
+    }
+
     static async build(
           dataset: Dataset
         , args: string[] = []
@@ -417,6 +517,11 @@ export class Datascripts {
                 .filter(x=>autorealms.find(y=>y.fullName===x.fullName))
                 .map(x=>x.start(x.lastBuildType)))
         }
+
+        // Touch the freshness stamp ONLY after a successful run. If we
+        // returned early from the catch block above, this never runs and
+        // the next package call will rebuild as expected.
+        this.touchStamp(dataset);
 
         term.success('datascripts',`Finished building DataScripts for dataset ${dataset.name}`);
     }

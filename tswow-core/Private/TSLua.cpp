@@ -9,6 +9,8 @@
 #include <fstream>
 #include <memory>
 #include <array>
+#include <atomic>
+#include <chrono>
     
 static std::map<std::filesystem::path, sol::table> modules;
 static std::vector<std::filesystem::path> file_stack;
@@ -16,6 +18,63 @@ static std::filesystem::path cur_module;
 static std::filesystem::path cur_directory;
 static bool already_errored = false;
 static sol::state state;
+
+std::recursive_mutex& tswow_lua_mutex()
+{
+    static std::recursive_mutex mutex;
+    return mutex;
+}
+
+// @megaserver A3 lua-lock contention profiling --------------------------------
+bool g_tswowLuaProfile = false;
+static std::atomic<unsigned long long> s_luaAcquire{0};
+static std::atomic<unsigned long long> s_luaContended{0};
+static std::atomic<unsigned long long> s_luaWaitNs{0};
+static std::atomic<unsigned long long> s_luaHeldNs{0};
+
+void TSLuaProfileSet(bool on) { g_tswowLuaProfile = on; }
+void TSLuaProfileGet(unsigned long long& acquire, unsigned long long& contended,
+                     unsigned long long& waitNs, unsigned long long& heldNs)
+{
+    acquire = s_luaAcquire.load(); contended = s_luaContended.load();
+    waitNs = s_luaWaitNs.load(); heldNs = s_luaHeldNs.load();
+}
+
+TSLuaGuard::TSLuaGuard() : _profiled(false), _t0(0)
+{
+    std::recursive_mutex& m = tswow_lua_mutex();
+    if (!g_tswowLuaProfile)
+    {
+        m.lock();
+        return;
+    }
+    _profiled = true;
+    s_luaAcquire.fetch_add(1, std::memory_order_relaxed);
+    if (!m.try_lock())
+    {
+        // another thread (or a non-recursive contender) holds it — measure the wait
+        auto w0 = std::chrono::steady_clock::now();
+        m.lock();
+        auto waited = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now() - w0).count();
+        s_luaContended.fetch_add(1, std::memory_order_relaxed);
+        s_luaWaitNs.fetch_add(static_cast<unsigned long long>(waited), std::memory_order_relaxed);
+    }
+    _t0 = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
+TSLuaGuard::~TSLuaGuard()
+{
+    if (_profiled)
+    {
+        long long now = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+        s_luaHeldNs.fetch_add(static_cast<unsigned long long>(now - _t0), std::memory_order_relaxed);
+    }
+    tswow_lua_mutex().unlock();
+}
+// -----------------------------------------------------------------------------
 
 sol::state& TSLua::GetState()
 {
@@ -316,6 +375,7 @@ sol::table TSLua::require(std::string const& mod)
 
 void TSLua::Load()
 {
+    TSWOW_LUA_GUARD
     if (!std::filesystem::exists(LuaRoot()))
     {
         return;
@@ -425,6 +485,9 @@ static std::vector<std::unique_ptr<lua_garbage_page_type>> lua_garbage_stack;
 
 void* add_lua_garbage(size_t size)
 {
+    // callers are mid-lua-execution and already hold the lock; recursive
+    // re-acquire is cheap and keeps this safe if an entry point was missed
+    TSWOW_LUA_GUARD
     lua_garbage_total += size;
     if (lua_garbage_offset + size >= lua_garbage_page_size)
     {
@@ -438,6 +501,9 @@ void* add_lua_garbage(size_t size)
 
 void clear_lua_garbage()
 {
+    // garbage pages are handed out to sol getters mid-lua-execution; never
+    // free them while another thread may be inside the lua state
+    TSWOW_LUA_GUARD
     lua_garbage_stack.clear();
     lua_garbage_page = 0;
     lua_garbage_offset = lua_garbage_page_size;

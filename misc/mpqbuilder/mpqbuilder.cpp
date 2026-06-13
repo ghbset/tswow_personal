@@ -20,6 +20,10 @@
 #include <string>
 #include <vector>
 #include <cstdio>
+#include <thread>
+#include <atomic>
+#include <fcntl.h>
+#include <unistd.h>
 
 inline bool exists(std::string const& name) {
     std::ifstream f(name.c_str());
@@ -122,6 +126,39 @@ int main(int argc, char **argv)
     {
         std::cerr << "Failed to create output mpq file " << temp.m_file << "\n";
         return -1;
+    }
+
+    // --- Parallel page-cache pre-warm ----------------------------------
+    // SFileAddFile reads each source file synchronously. For ~1.4M files
+    // (the package-client workload), the per-file open/read disk-seek
+    // overhead dominates wall time even though StormLib's compression is
+    // fast. Fan out N worker threads to open + drain each source file's
+    // bytes into the kernel page cache before the sequential MPQ-write
+    // loop runs; the sequential reads then hit cache.
+    //
+    // No threading inside StormLib: SFileAddFile is still called
+    // sequentially below. This is a pure I/O-prefetch optimisation.
+    {
+        size_t worker_count = std::thread::hardware_concurrency();
+        if (worker_count < 2) worker_count = 2;
+        if (worker_count > 16) worker_count = 16;   // diminishing returns past this
+        std::vector<std::thread> workers;
+        workers.reserve(worker_count);
+        std::atomic<size_t> next{0};
+        for (size_t w = 0; w < worker_count; w++) {
+            workers.emplace_back([&]() {
+                char buf[64 * 1024];
+                while (true) {
+                    size_t i = next.fetch_add(1);
+                    if (i >= files.size()) break;
+                    int fd = ::open(files[i].first.c_str(), O_RDONLY);
+                    if (fd < 0) continue;   // skipped at AddFile time too
+                    while (::read(fd, buf, sizeof(buf)) > 0) {}
+                    ::close(fd);
+                }
+            });
+        }
+        for (auto& w : workers) w.join();
     }
 
     for (auto const& pair : files)

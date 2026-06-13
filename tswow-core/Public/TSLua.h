@@ -6,6 +6,34 @@
 
 #include <vector>
 #include <filesystem>
+#include <mutex>
+
+// Serializes ALL entry into the single global sol::state (event dispatch,
+// timers, delayed callbacks, sol object destruction). Required for
+// MapUpdate.Threads > 1: lua_State is not thread-safe and livescript hooks
+// fire from map updater threads. Recursive because a lua handler can invoke
+// C++ that synchronously fires another event.
+TC_GAME_API std::recursive_mutex& tswow_lua_mutex();
+
+// @megaserver A3: optional contention profiling of the global lua lock. When the
+// profile flag is off, the guard is a plain recursive lock (zero added overhead).
+// When on, it measures acquisitions, contended acquisitions (a thread actually had
+// to wait for another thread), and total nanoseconds blocked — quantifying exactly
+// how much wall-time the single-sol::state serialization costs under load.
+TC_GAME_API extern bool g_tswowLuaProfile;
+TC_GAME_API void TSLuaProfileSet(bool on);
+TC_GAME_API void TSLuaProfileGet(unsigned long long& acquire, unsigned long long& contended,
+                                 unsigned long long& waitNs, unsigned long long& heldNs);
+
+struct TC_GAME_API TSLuaGuard
+{
+    TSLuaGuard();
+    ~TSLuaGuard();
+private:
+    bool _profiled;
+    long long _t0;
+};
+#define TSWOW_LUA_GUARD TSLuaGuard _tswow_lua_guard;
 
 #define LUA_FIELD(target,cls,fn) target.set_function(#fn,&cls::fn)
 

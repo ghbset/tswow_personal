@@ -131,6 +131,7 @@ public:
             }
             else
             {
+                TSWOW_LUA_GUARD
                 TSLua::handle_error(m_lua_callback(ctx, this));
             }
 
@@ -163,6 +164,16 @@ class TSTimers {
     std::vector<TSTimer<T>> m_timers;
     bool m_ticking = false;
 public:
+    // every mutation of m_timers can copy/destroy sol functions (lua registry
+    // refs), and entity dtors run on map threads — all guarded
+    ~TSTimers()
+    {
+        if (!m_timers.empty())
+        {
+            TSWOW_LUA_GUARD
+            m_timers.clear();
+        }
+    }
 
     void add(uint32_t time, int32_t repeats, uint32_t flags, TimerCallback<T> callback)
     {
@@ -191,11 +202,13 @@ public:
 
     void add(uint32_t time, int32_t repeats, uint32_t flags, sol::protected_function callback)
     {
+        TSWOW_LUA_GUARD
         m_timers.push_back(TSTimer<T>("", time, repeats, flags, callback));
     }
 
     void add_named(std::string const& name, uint32_t time, int32_t repeats, uint32_t flags, sol::protected_function callback)
     {
+        TSWOW_LUA_GUARD
         std::string nname = name;
         for (int i = 0; i < m_timers.size(); ++i)
         {
@@ -218,6 +231,7 @@ public:
 
     void remove_on_death()
     {
+        TSWOW_LUA_GUARD
         for (auto itr = m_timers.begin(); itr != m_timers.end();)
         {
             if (uint32(itr->GetFlags()) & uint32(TimerFlags::CLEARS_ON_DEATH))
@@ -241,6 +255,7 @@ public:
 
     void remove_on_map_change()
     {
+        TSWOW_LUA_GUARD
         for (auto itr = m_timers.begin(); itr != m_timers.end();)
         {
             if (uint32(itr->GetFlags()) & uint32(TimerFlags::CLEARS_ON_MAP_CHANGED))
@@ -264,6 +279,7 @@ public:
 
     void remove(std::string const& name)
     {
+        TSWOW_LUA_GUARD
         for (auto iter = m_timers.begin(); iter != m_timers.end(); ++iter)
         {
             if (iter->GetName() == name)
@@ -283,6 +299,11 @@ public:
 
     void tick(T context)
     {
+        if (m_timers.empty())
+        {
+            return;
+        }
+        TSWOW_LUA_GUARD
         m_ticking = true;
         int size = m_timers.size();
 
@@ -311,6 +332,7 @@ public:
 
     void clear()
     {
+        TSWOW_LUA_GUARD
         if (m_ticking)
         {
             for (TSTimer<T>& timer : m_timers)

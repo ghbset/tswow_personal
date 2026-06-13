@@ -23,6 +23,8 @@ struct TSEvents;
 struct DataRemover {
     static void RemoveData(WorldObject* obj)
     {
+        // m_lua_tables / m_delayedLuaCallbacks hold lua registry refs
+        TSWOW_LUA_GUARD
         obj->m_tsEntity.m_compiledClasses.clear();
         obj->m_tsEntity.m_lua_tables.clear();
         obj->m_tsWorldEntity.clear();
@@ -48,6 +50,7 @@ struct DataRemover {
     static void Run()
     {
         sMapMgr->DoForAllMaps([](Map* map) {
+            TSWOW_LUA_GUARD
             map->m_tsWorldEntity.clear();
             map->m_tsEntity.m_compiledClasses.clear();
             map->m_tsEntity.m_lua_tables.clear();

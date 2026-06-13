@@ -13,9 +13,8 @@
 TSArray<TSPlayer> TSMainThreadContext::GetAllPlayers()
 {
     TSArray<TSPlayer> tbl;
-    std::shared_lock<std::shared_mutex> lock(*HashMapHolder<Player>::GetLock());
-
-    HashMapHolder<Player>::MapType const& m = ObjectAccessor::GetPlayers();
+    // @megaserver A2: GetPlayers() now snapshots across shards (locks internally)
+    HashMapHolder<Player>::MapType const m = ObjectAccessor::GetPlayers();
     for (HashMapHolder<Player>::MapType::const_iterator itr = m.begin(); itr != m.end(); ++itr)
         tbl.push(TSPlayer(itr->second));
     return tbl;
