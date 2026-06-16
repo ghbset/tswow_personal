@@ -61,7 +61,7 @@ namespace
         if (!tpl)
         {
             static TSRegistryRef missing;
-            TC_LOG_ERROR("tswow", "Livescript registered an event for missing %s %u; skipping registration (no-op).", kind, id);
+            TC_LOG_ERROR("tswow", "Livescript registered an event for missing {} {}; skipping registration (no-op).", kind, id);
             return missing;
         }
         return const_cast<TSRegistryRef&>(tpl->events);
