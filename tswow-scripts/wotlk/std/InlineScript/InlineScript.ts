@@ -135,38 +135,44 @@ export function getAny(owner: any, prefix: string,type: string, inlineType: Inli
 }
 
 finish('inline-scripts',()=>{
+    // PATCH (ac-fidelity session): dodge Lua's 200-local-per-chunk limit.
+    // Stock tswow emitted one module + `import { __inline_x }` per inline FILE,
+    // and each import becomes ~2 Lua locals in __inline_main's main chunk. Once a
+    // module has ~100+ inline files (azeroth_quests) the chunk exceeds 200 locals
+    // -> "too many local variables" -> ALL livescripts fail to load.
+    // Instead: emit NO per-file modules and NO imports. Inline every registration
+    // body directly into __inline_main.ts, partitioned into local
+    // __InlineGroup_<g>(events) functions (GROUP_SIZE bodies each) that __InlineMain
+    // calls. Main chunk then holds only ~(1 + numGroups) locals. Everything stays in
+    // __inline_main.lua so the runtime prefix-strip (Livescripts.ts) still applies.
+    const GROUP_SIZE = 80;
     Object.entries(filesLivescript).forEach(([mod,files])=>{
         let inlinePath = new WDirectory(
             mpath(mod,'livescripts','build',datasetName,'inline')
         );
 
-        let inlineHeader = ``
-        let inlineBody = `export function __InlineMain(events: TSEvents) {\n`
-
-        // update deleted scripts
+        // wipe the whole generated inline dir each run (no stale per-file modules)
         if(inlinePath.exists()) {
             inlinePath.iterate('RECURSE','FILES','FULL',(node)=>{
-                let rel = node.relativeTo(inlinePath)
-                if(files[rel.get()] === undefined) {
-                    node.remove();
-                }
+                node.remove();
             })
         }
-        Object.entries(files).forEach(([file,funcs])=>{
-            let funcName = '__inline_' + file
-                .substring(0,file.lastIndexOf('.'))
-                .split('-').join('_')
-                .split('\\').join('_')
-                .split('/').join('_')
-                .split('.').join('_')
-            let content = `export function ${funcName}(events: TSEvents){\n`
-                + `${funcs.join('\n\n')}\n}`
 
-            inlinePath.join(file).toFile().write(content)
-            inlineHeader += `import { ${funcName} } from "./${file.substring(0,file.lastIndexOf('.')).split('\\').join('/')}"\n`
-            inlineBody += `    ${funcName}(events);\n`;
+        // flatten all registration bodies across every file in this module
+        let allFuncs: string[] = []
+        Object.entries(files).forEach(([file,funcs])=>{
+            funcs.forEach((f)=>allFuncs.push(f))
         })
-        inlineBody += '}'
-        inlinePath.join('__inline_main.ts').toFile().write(inlineHeader+'\n'+inlineBody)
+
+        let numGroups = Math.ceil(allFuncs.length / GROUP_SIZE)
+        let groupDefs = ``
+        let groupCalls = ``
+        for(let g = 0; g < numGroups; g++) {
+            let slice = allFuncs.slice(g*GROUP_SIZE, (g+1)*GROUP_SIZE)
+            groupDefs += `function __InlineGroup_${g}(events: TSEvents){\n${slice.join('\n\n')}\n}\n\n`
+            groupCalls += `    __InlineGroup_${g}(events);\n`
+        }
+        let out = `${groupDefs}export function __InlineMain(events: TSEvents) {\n${groupCalls}}\n`
+        inlinePath.join('__inline_main.ts').toFile().write(out)
     });
 })
