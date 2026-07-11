@@ -8,6 +8,9 @@ import { handleClass, handleClassImpl } from './tswow/orm';
 import { handleTSWoWOverride } from './tswow/override';
 import { generateStringify } from './tswow/stringify';
 
+// TypeScript 5 moved node-construction helpers onto ts.factory
+const factory = ts.factory;
+
 let mainFile: string = undefined;
 export class Emitter {
     public writer: CodeWriter;
@@ -196,9 +199,6 @@ export class Emitter {
                 break;
             case ts.SyntaxKind.Bundle:
                 this.processBundle(<ts.Bundle>node);
-                break;
-            case ts.SyntaxKind.UnparsedSource:
-                this.processUnparsedSource(<ts.UnparsedSource>node);
                 break;
             default:
                 // TODO: finish it
@@ -571,7 +571,7 @@ export class Emitter {
         throw new Error('Method not implemented.');
     }
 
-    processUnparsedSource(unparsedSource: ts.UnparsedSource): void {
+    processUnparsedSource(unparsedSource: any): void {
         throw new Error('Method not implemented.');
     }
 
@@ -1054,7 +1054,7 @@ export class Emitter {
             this.writer.writeString(`utils::finally ${finallyName}(`);
 
             const newArrowFunctions =
-                ts.createArrowFunction(
+                factory.createArrowFunction(
                     undefined,
                     undefined,
                     undefined,
@@ -1233,7 +1233,7 @@ export class Emitter {
         this.writer.EndOfStatement();
     }
 
-    hasAccessModifier(modifiers: ts.ModifiersArray) {
+    hasAccessModifier(modifiers: readonly ts.ModifierLike[]) {
         if (!modifiers) {
             return false;
         }
@@ -1432,7 +1432,7 @@ export class Emitter {
         }
 
         const effectiveType = node.type
-            || this.resolver.getOrResolveTypeOfAsTypeNode(node.initializer);
+            || this.resolver.getOrResolveTypeOfAsTypeNode((node as any).initializer);
         this.processPredefineType(effectiveType);
         this.processType(effectiveType);
         this.writer.writeString(' ');
@@ -1455,9 +1455,9 @@ export class Emitter {
         }
 
         const isStatic = this.isStatic(node);
-        if (node.initializer && (implementationMode && isStatic || !isStatic)) {
+        if ((node as any).initializer && (implementationMode && isStatic || !isStatic)) {
             this.writer.writeString(' = ');
-            this.processExpression(node.initializer);
+            this.processExpression((node as any).initializer);
         }
 
         this.writer.EndOfStatement();
@@ -1478,7 +1478,7 @@ export class Emitter {
         this.didStrongThis = false;
     }
 
-    processModifiers(modifiers: ts.NodeArray<ts.Modifier>) {
+    processModifiers(modifiers: readonly ts.ModifierLike[]) {
         if (!modifiers) {
             return;
         }
@@ -1530,7 +1530,7 @@ export class Emitter {
             type = conditionType.checkType;
         } else if (node.type.kind === ts.SyntaxKind.MappedType) {
             if (node.typeParameters && node.typeParameters[0]) {
-                type = <any>{ kind: ts.SyntaxKind.TypeParameter, name: ts.createIdentifier((<any>(node.typeParameters[0])).symbol.name) };
+                type = <any>{ kind: ts.SyntaxKind.TypeParameter, name: factory.createIdentifier((<any>(node.typeParameters[0])).symbol.name) };
             }
         }
 
@@ -2913,7 +2913,7 @@ export class Emitter {
     processArrowFunction(node: ts.ArrowFunction): void {
         if (node.body.kind !== ts.SyntaxKind.Block) {
             // create body
-            (node as any).body = ts.createBlock([ts.createReturn(<ts.Expression>node.body)]);
+            (node as any).body = factory.createBlock([factory.createReturnStatement(<ts.Expression>node.body)]);
         }
 
         this.processFunctionExpression(<any>node);
@@ -2941,11 +2941,11 @@ export class Emitter {
     }
 
     isStatic(node: ts.Node) {
-        return node.modifiers && node.modifiers.some(m => m.kind === ts.SyntaxKind.StaticKeyword);
+        return (node as any).modifiers && (node as any).modifiers.some(m => m.kind === ts.SyntaxKind.StaticKeyword);
     }
 
     isAbstract(node: ts.Node) {
-        return node.modifiers && node.modifiers.some(m => m.kind === ts.SyntaxKind.AbstractKeyword);
+        return (node as any).modifiers && (node as any).modifiers.some(m => m.kind === ts.SyntaxKind.AbstractKeyword);
     }
 
     processFunctionDeclaration(node: ts.FunctionDeclaration | ts.MethodDeclaration, implementationMode?: boolean): boolean {
@@ -3399,7 +3399,7 @@ export class Emitter {
                     if (property.name
                         && (property.name.kind === ts.SyntaxKind.Identifier
                             /*|| property.name.kind === ts.SyntaxKind.NumericLiteral*/)) {
-                        this.processExpression(ts.createStringLiteral(property.name.text));
+                        this.processExpression(factory.createStringLiteral(property.name.text));
                     } else {
                         this.processExpression(<ts.Expression>property.name);
                     }
@@ -3415,7 +3415,7 @@ export class Emitter {
                     if (property.name
                         && (property.name.kind === ts.SyntaxKind.Identifier
                             || property.name.kind === ts.SyntaxKind.NumericLiteral)) {
-                        this.processExpression(ts.createStringLiteral(property.name.text));
+                        this.processExpression(factory.createStringLiteral(property.name.text));
                     } else {
                         this.processExpression(<ts.Expression>property.name);
                     }
@@ -3424,7 +3424,7 @@ export class Emitter {
                     if (property.name
                         && (property.name.kind === ts.SyntaxKind.Identifier
                             || property.name.kind === ts.SyntaxKind.NumericLiteral)) {
-                        this.processExpression(ts.createStringLiteral(property.name.text));
+                        this.processExpression(factory.createStringLiteral(property.name.text));
                     } else {
                         this.processExpression(<ts.Expression>property.name);
                     }
@@ -3914,7 +3914,7 @@ export class Emitter {
                         this.writer.writeString(', ');
                     }
 
-                    const elementAccess = ts.createElementAccess(node.expression, index);
+                    const elementAccess = factory.createElementAccessExpression(node.expression, index);
                     this.processExpression(this.fixupParentReferences(elementAccess, node.parent));
                     next = true;
                 });
