@@ -36,5 +36,5 @@ private:
     typedef retval (calltype *__detour_name##Type)__VA_ARGS__;\
     inline __detour_name##Type __detour_name = (__detour_name##Type)(addr);\
     retval __detour_name##Detour __VA_ARGS__; \
-    int __detour_name##__Result = ClientDetours::Add(#__detour_name,&__detour_name,__detour_name##Detour,__FILE__,__LINE__);\
+    int __detour_name##__Result = ClientDetours::Add(#__detour_name,(void*)&__detour_name,(void*)__detour_name##Detour,__FILE__,__LINE__);\
     retval __detour_name##Detour __VA_ARGS__

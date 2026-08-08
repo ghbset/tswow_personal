@@ -35,7 +35,7 @@ namespace ClientLua {
 // without also changing the name in client_header_builder.cpp
 
 #define LUA_FUNCTION(__lua_function_name, arg) \
-    int __lua_function_name##Fn##arg;\
+    int __lua_function_name##Fn arg;\
     int __lua_function_name##__Result = \
         ClientLua::AddFunction(\
             #__lua_function_name\
@@ -43,4 +43,4 @@ namespace ClientLua {
             ,__FILE__\
             ,__LINE__\
             );\
-    int __lua_function_name##Fn##arg
+    int __lua_function_name##Fn arg
