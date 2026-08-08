@@ -18,11 +18,18 @@ export class MiscCommands {
                 let runningClients = [dataset.client]
                 let runningWorldservers = dataset.realms()
 
-                await commands.sendCommand(`build data ${dataset.name} ${args} --no-restart`);
-                await commands.sendCommand(`build addon ${dataset.name} ${args}`)
+                // args.join(' ') — NOT `${args}`. Interpolating a string[]
+                // joins with commas, so two or more flags arrive at the
+                // subcommand as one unsplittable token ("--rebuild,--use-timer")
+                // and every one of them is silently ignored. A single flag
+                // happened to work, which is why this went unnoticed.
+                const fwd = args.join(' ')
+
+                await commands.sendCommand(`build data ${dataset.name} ${fwd} --no-restart`);
+                await commands.sendCommand(`build addon ${dataset.name} ${fwd}`)
                 // we've already built inlinescripts, skip them
-                await commands.sendCommand(`build scripts ${dataset.name} ${args} --no-inline`)
-                await commands.sendCommand(`build lua ${dataset.name} ${args} --no-inline`)
+                await commands.sendCommand(`build scripts ${dataset.name} ${fwd} --no-inline`)
+                await commands.sendCommand(`build lua ${dataset.name} ${fwd} --no-inline`)
 
                 await Promise.all(runningClients.map(x=>x.startup(NodeConfig.AutoStartClient)))
                 let autorealms = NodeConfig.AutoStartRealms
