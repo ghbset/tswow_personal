@@ -473,7 +473,12 @@ export class Datascripts {
 
         try {
             wsys.exec(
-                    `${NodeExecutable} -r source-map-support/register`
+                    // Datascripts hold the whole world dataset in memory (row
+                    // caches, DBC buffers, the source-read dedup cache). Bare
+                    // `node` caps the old space at ~4GB regardless of how much
+                    // RAM the host has, so give it explicit headroom.
+                      `${NodeExecutable} --max-old-space-size=16384`
+                + ` -r source-map-support/register`
                 + ` ${ipaths.node_modules.wow.data.index.get()}`
                 + ` --ipaths=./`
                 + ` --dataset=${dataset.path.get()}`

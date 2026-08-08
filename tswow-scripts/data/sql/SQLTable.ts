@@ -26,6 +26,22 @@ export class SqlTable<C, Q, R extends SqlRow<C, Q>> extends Table<C, Q, R> {
     private cachedRows: {[key: string]: R} = {};
     private cachedFirst: R | undefined;
     protected rowCreator: SqlRowCreator<C, Q, R>;
+    private _pkFields: string[] | undefined;
+
+    /**
+     * Primary-key field names for this table.
+     *
+     * These come from the @PrimaryKey decorator, which writes them to the row
+     * *prototype* — so they are per-class metadata and identical for every row
+     * of the table. Reading them used to mean allocating a throwaway row via
+     * rowCreator on every single query (see isPkLookup); memoise instead.
+     */
+    private get pkFields(): string[] {
+        if(this._pkFields === undefined) {
+            this._pkFields = Row.primaryKeyFields(this.rowCreator(this,{}));
+        }
+        return this._pkFields;
+    }
 
     private get cachedValues() {
         return Object.values(this.cachedRows);
@@ -68,7 +84,7 @@ export class SqlTable<C, Q, R extends SqlRow<C, Q>> extends Table<C, Q, R> {
     }
 
     private isPkLookup(where: Q): string {
-        let fields: string[] = Row.primaryKeyFields(this.rowCreator(this,{}));
+        let fields: string[] = this.pkFields;
         if(fields.length != Object.entries(where).length) {
             return undefined;
         }

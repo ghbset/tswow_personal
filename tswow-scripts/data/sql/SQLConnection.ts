@@ -227,9 +227,23 @@ export class SqlConnection {
     static world_dst = new Connection(NodeConfig.DatabaseSettings('world',datasetName));
     static world_src = new Connection(NodeConfig.DatabaseSettings('world_source',datasetName))
 
-    private static query_cache: {[table: string]: {[query: string]: boolean}} = {}
-    private static query_cache_size = 0;
-    private static readonly MAX_CACHE_SIZE = 10000;  // Limit cache to 10k entries
+    /**
+     * Dedup guard for source-DB reads: remembers which exact SELECTs have
+     * already been issued so getRows can skip repeating them.
+     *
+     * Flat Map keyed by `<table>\0<where>`. A Map (not a nested object) so
+     * that eviction can be bounded and ordered — JS Maps iterate in insertion
+     * order, which gives FIFO eviction for free.
+     *
+     * NOTE: this cache is purely an optimisation. Dropping an entry only costs
+     * a redundant SELECT — SQLTable.filterInt re-filters whatever getRows
+     * returns against its own row cache by primary key, so a re-read can never
+     * duplicate or clobber an already-cached row.
+     */
+    private static query_cache = new Map<string, true>();
+    private static readonly MAX_CACHE_SIZE = 1_000_000;
+    /** Entries dropped per overflow. Partial eviction, never a full wipe. */
+    private static readonly EVICT_BATCH = 10_000;
 
     protected static endConnection() {
         Connection.end(this.auth);
@@ -249,8 +263,7 @@ export class SqlConnection {
     }
 
     static clearQueryCache() {
-        this.query_cache = {};
-        this.query_cache_size = 0;
+        this.query_cache.clear();
     }
 
     static getRows<C, Q, T extends SqlRow<C, Q>>(table: SqlTable<C, Q, T>, where: Q, first: boolean) {
@@ -258,20 +271,25 @@ export class SqlConnection {
         const whereLookup = whereSql + first;
 
         // Check cache for the query, don't repeat
-        let tableCache = this.query_cache[table.name] || (this.query_cache[table.name] = {});
-        if(tableCache[whereLookup]) {
+        const cacheKey = `${table.name}\0${whereLookup}`;
+        if(this.query_cache.has(cacheKey)) {
             return [];
         }
 
-        // Enforce cache size limit to prevent memory leak
-        if(this.query_cache_size >= this.MAX_CACHE_SIZE) {
-            // Clear cache when limit reached
-            this.clearQueryCache();
-            tableCache = this.query_cache[table.name] = {};
+        // Bound the cache without discarding it wholesale. The previous
+        // implementation cleared every entry on overflow, which put the cache
+        // into a sawtooth (fill to the cap, wipe, refill) and collapsed the
+        // steady-state hit rate on any build large enough to reach the cap.
+        // Evicting the oldest batch keeps the other ~99% of entries live.
+        if(this.query_cache.size >= this.MAX_CACHE_SIZE) {
+            let evicted = 0;
+            for(const key of this.query_cache.keys()) {
+                this.query_cache.delete(key);
+                if(++evicted >= this.EVICT_BATCH) break;
+            }
         }
 
-        tableCache[whereLookup] = true;
-        this.query_cache_size++;
+        this.query_cache.set(cacheKey, true);
 
         const sqlStr = `SELECT * FROM ${table.name} ${whereSql.length > 1 ? ` WHERE ${whereSql}` : ''} ${first ? 'LIMIT 1' : ''};`;
         const res = SqlConnection.querySource(sqlStr);
