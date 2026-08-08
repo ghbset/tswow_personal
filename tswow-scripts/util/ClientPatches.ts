@@ -13,6 +13,67 @@ export function patch(name: string, patches: [number,number[]][]): ClientPatchCa
     return {name,patches:patches.map(x=>({address:x[0],values:x[1]}))}
 }
 
+/**
+ * How much to raise the camera target, in game units (~1 unit = 1 yard).
+ * The player model is ~2 yards tall and the camera target sits around chest
+ * height, so 0.5 lifts it roughly to the shoulders. Change this value and
+ * rebuild - the patch bytes are recomputed from it.
+ */
+export const CAMERA_HEIGHT_OFFSET = 0.5
+
+/**
+ * Raise the camera target Z in Camera_Update, immediately after
+ * Camera_GetTargetPosition returns. The target is at [EBP-0x34]=X,
+ * [EBP-0x30]=Y, [EBP-0x2c]=Z; we add a constant to Z.
+ *
+ * We overwrite the 6-byte `FLD dword ptr [0x9f1670]` at VA 0x6070cb with a
+ * jump to a code cave, do the add there, run the displaced FLD, and jump back.
+ *
+ * The cave is a run of alignment NOPs at file 0x37421a (VA 0x774e1a). It is
+ * deliberately NOT the one a naive "scan .text backwards for padding" search
+ * finds: that lands at file 0x5dd7b3 / VA 0x9de3b3, which is exactly
+ * `.text`'s VirtualSize boundary (0x5dd3b3) - the first byte past the end of
+ * the mapped section. Bytes there exist in the file but aren't reliably mapped
+ * at runtime, so a jump into it can land on zeros. This cave sits well inside
+ * the mapped range, and clear of the client-extensions cave at 0x3738b8.
+ *
+ * Offsets are file offsets into a clean 3.3.5a Wow.exe
+ * (md5 45892bdedd0ad70aed4ccd22d9fb5984), matching the rest of this file.
+ */
+export function cameraHeightPatch(heightAdd: number): ClientPatchCat[] {
+    const PATCH_SITE   = 0x2064cb   // VA 0x6070cb
+    const CAVE_OFF     = 0x37421a   // VA 0x774e1a
+    const CAVE_VA      = 0x774e1a
+    const PATCH_VA     = 0x6070cb
+    const RETURN_VA    = 0x6070d1   // instruction after the displaced FLD
+    const CAVE_LEN     = 23         // code length before the float constant
+    const HEIGHT_VA    = CAVE_VA + CAVE_LEN
+
+    const u32 = (v: number) => [v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF]
+    const f32 = (v: number) => {
+        const b = Buffer.alloc(4); b.writeFloatLE(v, 0); return Array.from(b)
+    }
+
+    const cave = [
+        0xD9, 0x05, ...u32(HEIGHT_VA),          // FLD  dword [heightAdd]
+        0xD8, 0x45, 0xD4,                       // FADD dword [EBP-0x2c]   (target Z)
+        0xD9, 0x5D, 0xD4,                       // FSTP dword [EBP-0x2c]
+        0xD9, 0x05, 0x70, 0x16, 0x9F, 0x00,     // FLD  dword [0x9f1670]   (displaced original)
+        0xE9, ...u32((RETURN_VA - (CAVE_VA + CAVE_LEN)) >>> 0),  // JMP back
+        ...f32(heightAdd),
+    ]
+
+    const jump = [
+        0xE9, ...u32((CAVE_VA - (PATCH_VA + 5)) >>> 0),
+        0x90,                                   // NOP the 6th displaced byte
+    ]
+
+    return [patch('camera-height', [
+        [PATCH_SITE, jump],
+        [CAVE_OFF,   cave],
+    ])]
+}
+
 export const EXTENSION_DLL_PATCH_NAME = 'client-extensions'
 export const ITEM_DBC_DISABLER_PATCH_NAME = 'item-dbc-disabler'
 export const FIX_COMBO_POINT_PATCH_NAME = 'fix-combo-points'
@@ -237,7 +298,8 @@ export function ClientPatches(
                 [0x6EE041, [0x86]],
                 [0x6EE042, [0x01]],
                 [0x6EE043, [0x00]]
-            ])
+            ]),
+            ...cameraHeightPatch(CAMERA_HEIGHT_OFFSET)
             // @duskhaven-port-end
         ]
 }
