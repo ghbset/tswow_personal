@@ -205,6 +205,9 @@ export class Livescripts {
         }
         IdPublic.readFile();
 
+        // Collected by the scan below — see the throw after the loop.
+        const selfless: string[] = []
+
         this.luaInstallPath(dataset).iterate('RECURSE','FILES','ABSOLUTE',(node)=>{
             if(!node.isFile() || !node.endsWith('.lua')) {
                 return;
@@ -224,8 +227,40 @@ export class Livescripts {
                 lines = lines.split(`livescripts.build.${dataset.fullName}.inline.`).join('')
             }
             node.toFile().write(lines,'OVERWRITE');
+
+            // typescript-to-lua only emits the self-passing `obj:Method()`
+            // form when it can see the receiver's type. For a parameter
+            // declared `any` (or left untyped) it emits `obj.Method()`, which
+            // passes no self — sol2 then reads stack index 1 expecting e.g. a
+            // TSPlayer, dereferences garbage, and the worldserver takes a
+            // SIGSEGV the first time that line runs in game. The crash lands
+            // deep in sol2 (unqualified_getter<as_value_tag<T>>::get_no_lua_nil)
+            // with nothing pointing back at the script, so catch it here.
+            //
+            // lualib_bundle.lua is the TSTL runtime shim, not user code.
+            if(node.basename().get() === 'lualib_bundle.lua') {
+                return;
+            }
+            lines.split('\n').forEach((line,i)=>{
+                const m = /\b[a-z][A-Za-z0-9_]*\.[A-Z][A-Za-z0-9_]*\s*\(/.exec(line)
+                if(m) {
+                    selfless.push(`  ${node.get()}:${i+1}: ${m[0].trim()}`)
+                }
+            })
         });
         IdPublic.flushMemory()
+
+        if(selfless.length > 0) {
+            throw new Error(
+                  `Livescript emitted ${selfless.length} method call(s) without a self argument:\n`
+                + selfless.join('\n') + '\n\n'
+                + `These compile to 'obj.Method()' instead of 'obj:Method()' and will\n`
+                + `SIGSEGV the worldserver when the code path runs. The cause is almost\n`
+                + `always a helper whose parameters are declared 'any' (or left untyped) —\n`
+                + `give them real types (TSPlayer, TSCreature, ...) so typescript-to-lua\n`
+                + `knows to emit a method call.`
+            );
+        }
 
         term.success(this.logName(),`Finished building lua`)
     }
