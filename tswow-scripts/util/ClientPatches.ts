@@ -299,7 +299,38 @@ export function ClientPatches(
                 [0x6EE042, [0x01]],
                 [0x6EE043, [0x00]]
             ]),
-            ...cameraHeightPatch(CAMERA_HEIGHT_OFFSET)
+            ...cameraHeightPatch(CAMERA_HEIGHT_OFFSET),
+            /**
+             * awesome_wotlk's loader, ported from its standalone patcher
+             * (Projects/awesome_wotlk/src/AwesomeWotlkPatch/Patch.h) so the
+             * launcher can't wipe it: any exe the launcher ships is rebuilt
+             * from Wow.exe.clean, and anything applied by hand afterwards is
+             * overwritten on the next update.
+             *
+             * Requires AwesomeWotlkLib.dll next to Wow.exe - the blob at
+             * 0x4E5CB0 LoadLibrary's it by name, and without the file the hook
+             * runs but the library never loads.
+             *
+             * Verified against a clean 3.3.5a exe as not overlapping any other
+             * patch in this file.
+             */
+            patch('awesome-wotlk', [
+                // lua_ScanDllStart: mov eax,1; ret  (VA 0x4DCCF0)
+                [0xDC0F0, [0xB8,0x00,0x00,0x00,0x00,0xC3]],
+                // ScanDllStart: load AwesomeWotlkLib.dll, then resume  (VA 0x4E5CB0)
+                [0xE50B0, [
+                    0xB8,0x01,0x00,0x00,0x00, 0xA3,0x74,0xB4,0xB6,0x00,
+                    0x68,0xE0,0x5C,0x4E,0x00, 0xE8,0x1C,0x68,0x38,0x00,
+                    0x83,0xC4,0x04, 0x55, 0x8B,0xEC,
+                    0xE8,0xA1,0x10,0xF2,0xFF, 0xE9,0x04,0x5B,0xF2,0xFF,
+                    0xCC,0xCC,0xCC,0xCC,0xCC,0xCC,0xCC,0xCC,0xCC,0xCC,0xCC,0xCC,
+                    // "AwesomeWotlkLib.dll\0"
+                    0x41,0x77,0x65,0x73,0x6F,0x6D,0x65,0x57,0x6F,0x74,0x6C,0x6B,
+                    0x4C,0x69,0x62,0x2E,0x64,0x6C,0x6C,0x00
+                ]],
+                // StartAddress: jmp into the loader above  (VA 0x40B7D0)
+                [0xABD0, [0xE9,0xDB,0xA4,0x0D,0x00,0x90,0x90,0x90]],
+            ])
             // @duskhaven-port-end
         ]
 }
