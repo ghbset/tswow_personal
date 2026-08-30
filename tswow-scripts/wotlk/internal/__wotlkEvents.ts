@@ -55,6 +55,7 @@ async function saveSQL() {
         SqlTable.writeSQL(x);
     })
     await Promise.all(SqlConnection.allDbs().map(x=>x.apply()));
+    SqlConnection.printSourceReadProfile();
 }
 
 export async function __internal_wotlk_save() {

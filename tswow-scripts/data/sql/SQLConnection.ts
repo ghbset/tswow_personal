@@ -207,16 +207,17 @@ export class Connection {
         return out;
     }
 
-    private queryAsync(sql: string, values?: any): Promise<void> {
+    private queryAsync(sql: string, values?: any, executor?: any): Promise<void> {
         return new Promise<void>((res,rej)=>{
-            if(this.async===undefined) {
+            const target = executor !== undefined ? executor : this.async;
+            if(target===undefined) {
                 return rej(`Tried to apply while async adapter was disconnected`);
             }
             const cb = (err: any) => err ? rej(err) : res();
             if(values === undefined) {
-                this.async.query(sql,cb);
+                target.query(sql,cb);
             } else {
-                this.async.query(sql,values,cb);
+                target.query(sql,values,cb);
             }
         })
     }
@@ -230,10 +231,10 @@ export class Connection {
      * row is isolated and reported with its values — the same fidelity the
      * old per-row path gave, in O(log n) statements and only on the error path.
      */
-    private async writeChunk(bulkSql: string, rows: any[][]): Promise<void> {
+    private async writeChunk(bulkSql: string, rows: any[][], executor?: any): Promise<void> {
         try {
             SqlConnection.log(this.settings.database,bulkSql);
-            await this.queryAsync(bulkSql,[rows]);
+            await this.queryAsync(bulkSql,[rows],executor);
         } catch(err) {
             if(rows.length <= 1) {
                 if(err.message == undefined) err.message = ''
@@ -242,23 +243,60 @@ export class Connection {
                 throw err;
             }
             const mid = rows.length >> 1;
-            await this.writeChunk(bulkSql,rows.slice(0,mid));
-            await this.writeChunk(bulkSql,rows.slice(mid));
+            await this.writeChunk(bulkSql,rows.slice(0,mid),executor);
+            await this.writeChunk(bulkSql,rows.slice(mid),executor);
         }
     }
 
+    /**
+     * Whether an apply runs as a single transaction on a single connection.
+     *
+     * The win is durability round-trips, not concurrency: under autocommit
+     * every statement commits (and flushes) on its own, so a large apply pays
+     * thousands of fsyncs where one COMMIT pays one. It also leaves the
+     * destination database untouched when an apply fails halfway instead of
+     * half-written. The cost is that statements no longer spread across the
+     * pool. DDL in the queues still commits implicitly - MySQL has no
+     * transactional DDL - so atomicity is best-effort around those.
+     */
+    private static readonly APPLY_IN_TRANSACTION = true;
+
+    /**
+     * Reserve one connection for the whole apply. Pools hand out a member;
+     * a plain connection is its own executor and needs no release.
+     */
+    private acquireApplyConnection(): Promise<{executor: any, release: ()=>void}> {
+        const adapter: any = this.async;
+        if(adapter === undefined) {
+            return Promise.reject(`Tried to apply while async adapter was disconnected`);
+        }
+
+        if(typeof(adapter.getConnection) !== 'function') {
+            return Promise.resolve({executor: adapter, release: ()=>{}});
+        }
+
+        return new Promise<{executor: any, release: ()=>void}>((res,rej)=>{
+            adapter.getConnection((err: any, connection: any)=>{
+                if(err) {
+                    return rej(err);
+                }
+                res({executor: connection, release: ()=>connection.release()});
+            })
+        })
+    }
+
     async apply() {
+        const applyStart = Date.now();
+        const lease = await this.acquireApplyConnection();
+        const executor = lease.executor;
+
         const doPriority = async (name: string) => {
             let priority: string[] = this[name]
 
             let promises = priority.map((x)=>new Promise<void>((res,rej)=>{
-                if(this.async===undefined) {
-                    return rej(`Tried to apply while async adapter was disconnected`);
-                }
-
                 SqlConnection.log(this.settings.database,x);
 
-                this.async.query(x,(err)=>{
+                executor.query(x,(err)=>{
                         if(err){
                             err.message = `(For SQL "${x}")\n`+err.message;
                             return rej(err);
@@ -279,7 +317,7 @@ export class Connection {
                 const bulk = Connection.toBulk(x.query);
                 if(bulk !== undefined) {
                     for(const chunk of Connection.chunkRows(values)) {
-                        promises.push(this.writeChunk(bulk,chunk));
+                        promises.push(this.writeChunk(bulk,chunk,executor));
                     }
                     return;
                 }
@@ -288,7 +326,7 @@ export class Connection {
                 values.forEach(y=>{
                     promises.push(new Promise<void>((res,rej)=>{
                         try {
-                            this.async.execute(x.query,y, err => {
+                            executor.execute(x.query,y, err => {
                                 if(err) {
                                     if(err.message == undefined) {
                                         err.message = ''
@@ -310,13 +348,40 @@ export class Connection {
             return Promise.all(promises);
         }
 
-        await doPriority('early');
-        await doPriority('normal');
-        await doPriority('late');
+        try {
+            if(Connection.APPLY_IN_TRANSACTION) {
+                await this.queryAsync('START TRANSACTION',undefined,executor);
+            }
+            await doPriority('early');
+            await doPriority('normal');
+            await doPriority('late');
+            if(Connection.APPLY_IN_TRANSACTION) {
+                await this.queryAsync('COMMIT',undefined,executor);
+            }
+        } catch(err) {
+            if(Connection.APPLY_IN_TRANSACTION) {
+                try {
+                    await this.queryAsync('ROLLBACK',undefined,executor);
+                } catch(rollbackError) {
+                    // keep the original apply error, it's the useful one
+                }
+            }
+            throw err;
+        } finally {
+            lease.release();
+        }
+
         this.statements.forEach(x=>PreparedStatement.clear(x))
         this.early = [];
         this.normal = [];
         this.late = [];
+
+        if(BuildArgs.USE_TIMER) {
+            console.log(
+                `[timer] SQL apply ${this.settings.database}: `
+                + `${((Date.now()-applyStart)/1000).toFixed(2)}s`
+            );
+        }
     }
 }
 
@@ -330,6 +395,67 @@ export class Connection {
 export class SqlConnection {
     static additional: Connection[] = [];
     static logFile: number;
+
+    /**
+     * Per-table cost of reading the source database, so SqlTable can decide a
+     * table is worth loading in full (see AUTO_EAGER_PRELOAD_* there) and so
+     * --use-timer can say where a build's SQL time actually went.
+     */
+    private static sourceReadCount = 0;
+    private static sourceReadMs = 0;
+    private static sourceReadRows = 0;
+    private static sourceReadByTable = new Map<string, {count: number, ms: number, rows: number}>();
+
+    static getSourceReadStats(table: string) {
+        return this.sourceReadByTable.get(table) || {count: 0, ms: 0, rows: 0};
+    }
+
+    private static recordSourceRead(table: string, ms: number, rows: number) {
+        this.sourceReadCount++;
+        this.sourceReadMs += ms;
+        this.sourceReadRows += rows;
+
+        const stats = this.sourceReadByTable.get(table);
+        if(stats) {
+            stats.count++;
+            stats.ms += ms;
+            stats.rows += rows;
+        } else {
+            this.sourceReadByTable.set(table,{count: 1, ms: ms, rows: rows});
+        }
+    }
+
+    private static resetSourceReadProfile() {
+        this.sourceReadCount = 0;
+        this.sourceReadMs = 0;
+        this.sourceReadRows = 0;
+        this.sourceReadByTable.clear();
+    }
+
+    static printSourceReadProfile(maxTables: number = 15) {
+        if(!BuildArgs.USE_TIMER) {
+            return;
+        }
+
+        console.log(
+            `[timer] SQL source reads: `
+            + `queries=${this.sourceReadCount}, `
+            + `rows=${this.sourceReadRows}, `
+            + `total=${(this.sourceReadMs/1000).toFixed(2)}s`
+        );
+
+        Array.from(this.sourceReadByTable.entries())
+            .sort(([,a],[,b])=>b.ms-a.ms)
+            .slice(0,maxTables)
+            .forEach(([table,stats])=>{
+                console.log(
+                    `[timer] SQL source table ${table}: `
+                    + `queries=${stats.count}, `
+                    + `rows=${stats.rows}, `
+                    + `time=${(stats.ms/1000).toFixed(2)}s`
+                );
+            });
+    }
     static log(db: string, sql: string) {
         if(BuildArgs.LOG_SQL) {
             fs.writeSync(this.logFile,`[${db}]: ${sql}\n`);
@@ -374,6 +500,7 @@ export class SqlConnection {
             .forEach((x)=>Connection.connect(x));
         // Clear query cache on reconnect
         this.clearQueryCache();
+        this.resetSourceReadProfile();
     }
 
     static clearQueryCache() {
@@ -406,7 +533,9 @@ export class SqlConnection {
         this.query_cache.set(cacheKey, true);
 
         const sqlStr = `SELECT * FROM ${table.name} ${whereSql.length > 1 ? ` WHERE ${whereSql}` : ''} ${first ? 'LIMIT 1' : ''};`;
+        const readStart = Date.now();
         const res = SqlConnection.querySource(sqlStr);
+        this.recordSourceRead(table.name, Date.now()-readStart, Array.isArray(res) ? res.length : 0);
         const rowsOut: T[] = [];
         for (const row of res) {
             translate(table.name,row,'IN');
