@@ -584,6 +584,25 @@ export function ClientPatches(
              * `mov eax,[ebp-4]; mov eax,[eax+edx]` -> `add edx,[ebp-4];
              * movzx eax,word [edx]`; edx is reloaded before its next use.
              */
+            /**
+             * GetBarberShopTotalCost crash: the cost helper (VA 0x52EBA0, used by
+             * the Lua GetBarberShopTotalCost and one other caller) dereferences
+             * the three barber selection pointers 0xBD19AC/B0/B4 without a null
+             * check. Guard them (Ascension's fix, detour 0x10a6eb60): the entry
+             * jumps to a cave in .zdata (VA 0xDD1F00, free up to the 0xDD1FE0
+             * decal constants) that returns 0 if any is null, otherwise replays
+             * the displaced prologue (push ebp; mov ebp,esp; sub esp,0Ch) and
+             * resumes at 0x52EBA6.
+             */
+            patch('barbershop-cost-null-guard', [
+                [0x72DD00, [0x83,0x3D,0xAC,0x19,0xBD,0x00,0x00, 0x74,0x1D,
+                            0x83,0x3D,0xB0,0x19,0xBD,0x00,0x00, 0x74,0x14,
+                            0x83,0x3D,0xB4,0x19,0xBD,0x00,0x00, 0x74,0x0B,
+                            0x55, 0x8B,0xEC, 0x83,0xEC,0x0C,
+                            0xE9,0x80,0xCC,0x75,0xFF,
+                            0x33,0xC0, 0xC3]],
+                [0x12DFA0, [0xE9,0x5B,0x33,0x8A,0x00, 0x90]]
+            ]),
             patch('geoset-level-fix', [
                 [0x42BBEA, [0x03,0x55,0xFC, 0x0F,0xB7,0x02]]
             ]),
