@@ -31,6 +31,7 @@ void TSLua::load_player_methods(sol::state& state)
     LUA_FIELD(ts_player, TSPlayer, GetTalentPointsInTree);
     LUA_FIELD(ts_player, TSPlayer, CanTitanGrip);
     LUA_FIELD(ts_player, TSPlayer, HasTalent);
+    LUA_FIELD(ts_player, TSPlayer, SetAppearanceOverride);
     LUA_FIELD(ts_player, TSPlayer, HasAchieved);
     LUA_FIELD(ts_player, TSPlayer, HasQuest);
     LUA_FIELD(ts_player, TSPlayer, HasSkill);

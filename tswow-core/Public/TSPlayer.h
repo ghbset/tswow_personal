@@ -138,6 +138,8 @@ public:
 	TSNumber<uint16> GetReqKillOrCastCurrentCount(uint32 questId, int32 entry);
 	TSNumber<uint32> GetQuestLevel(TSQuest quest);
 	TSItem  GetEquippedItemBySlot(uint8 slot);
+	// Wardrobe: draw equipment slot @slot as item @itemEntry (0 = own look, 0xFFFFFFFF = hidden). Per slot, survives gear swaps.
+	void SetAppearanceOverride(uint8 slot, uint32 itemEntry);
 	TSNumber<float> GetRestBonus();
 	TSNumber<uint8> GetChatTag();
 	void SetBankBagSlotCount(uint8 count);

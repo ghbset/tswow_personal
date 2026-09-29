@@ -1191,6 +1191,11 @@ TSNumber<uint32> TSPlayer::GetQuestLevel(TSQuest _quest)
  * @param uint8 slot
  * @return [Item] item
  */
+void TSPlayer::SetAppearanceOverride(uint8 slot, uint32 itemEntry)
+{
+    SetWardrobeAppearance(player, slot, itemEntry);
+}
+
 TSItem  TSPlayer::GetEquippedItemBySlot(uint8 slot)
 {
 
