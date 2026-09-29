@@ -70,8 +70,8 @@ function __ReadCustomPacket()
     function reader:ReadUInt32() return _CLIENT_NETWORK(LuaNetworkOpcode.READ_UINT32) end
     function reader:ReadInt32() return _CLIENT_NETWORK(LuaNetworkOpcode.READ_INT32) end
     
-    function reader:ReadUInt64() return _CLIENT_NETWORK(LuaNetworkOpcode.READ_UINT32) end
-    function reader:ReadInt64() return _CLIENT_NETWORK(LuaNetworkOpcode.READ_INT32) end
+    function reader:ReadUInt64() return _CLIENT_NETWORK(LuaNetworkOpcode.READ_UINT64) end
+    function reader:ReadInt64() return _CLIENT_NETWORK(LuaNetworkOpcode.READ_INT64) end
 
     function reader:ReadFloat() return _CLIENT_NETWORK(LuaNetworkOpcode.READ_FLOAT) end
     function reader:ReadDouble() return _CLIENT_NETWORK(LuaNetworkOpcode.READ_DOUBLE) end
