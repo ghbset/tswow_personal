@@ -8,6 +8,7 @@ void TSLua::load_itemtemplate_methods(sol::state& state)
 {
     auto ts_itemtemplate = state.new_usertype < TSItemTemplate>("TSItemTemplate");
     load_entity_methods_t(state, ts_itemtemplate, "TSItemTemplate");
+    LUA_FIELD(ts_itemtemplate, TSItemTemplate, IsNull);   // GetItemTemplate() of a missing entry; declared in global.d.ts, was never bound
     LUA_FIELD(ts_itemtemplate, TSItemTemplate, GetDamageMinA);
     LUA_FIELD(ts_itemtemplate, TSItemTemplate, GetDamageMinB);
     LUA_FIELD(ts_itemtemplate, TSItemTemplate, GetDamageMaxA);

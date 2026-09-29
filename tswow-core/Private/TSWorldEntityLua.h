@@ -11,6 +11,7 @@ void TSLua::load_world_entity_methods_t(sol::state & state, sol::usertype<T> & t
     LUA_FIELD(target, TSWorldEntityProvider<C>, GetEntityGroup);
     LUA_FIELD(target, TSWorldEntityProvider<C>, RemoveEntityGroup);
     LUA_FIELD(target, TSWorldEntityProvider<C>, ClearEntityGroup);
+    LUA_FIELD(target, TSWorldEntityProvider<C>, RemoveTimer);   // declared in global.d.ts, was never bound
         target.set_function("AddTimer", sol::overload(
             [=](T & prov, uint32_t time, int32_t loops, uint32_t flags, sol::protected_function callback) {
                 prov.LAddTimer0(time, loops, flags, callback);
