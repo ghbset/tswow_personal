@@ -289,3 +289,14 @@ void TSInstance::HandleGameObject(uint32 spawnId, bool open)
 //   GetSpawnLoc / SetSpawnLoc              - custom instance spawn point override
 //   TriggerResetHook                       - custom reset event
 // @duskhaven-port-end TSInstance
+
+/**
+ * Sends an encounter frame update (boss health frames) to all players in the instance.
+ * Boss-linked creatures (instance_boss_creature) engage/disengage automatically.
+ */
+void TSInstance::SendEncounterUnit(uint32 type, TSUnit unit, uint8 param1, uint8 param2)
+{
+#if TRINITY
+    m_script->SendEncounterUnit(EncounterFrameType(type), unit.unit, param1, param2);
+#endif
+}

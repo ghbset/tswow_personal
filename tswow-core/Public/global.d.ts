@@ -113,6 +113,8 @@ declare const enum Powers /**@realType:int8 */ {
 } /**@realType:int8 */
 declare const enum CreatureType {} /** SharedDefines.h:CreatureType */
 declare const enum ReactStates {} /** UnitDefines.h:ReactStates */
+declare const enum EvadeReason {} /** CreatureAI.h:EvadeReason */
+declare const enum EncounterFrameType {} /** InstanceScript.h:EncounterFrameType */
 declare const enum LocaleConstant {} /** Common.h:LocaleConstant */
 declare const enum UnitMoveType {} /** UnitDefines.h:UnitMoveType */
 declare const enum MovementGeneratorType {} /** MovementDefines.h:MovementGeneratorType */
@@ -2893,6 +2895,33 @@ declare interface TSCreature extends TSUnit {
     IsInEvadeMode() : bool
 
     /**
+     * Makes the creature leave combat and return home. Fires OnEvade.
+     */
+    EnterEvadeMode() : void
+
+    /**
+     * Says a creature_text group, as authored with `CreatureTemplate.Texts` in datascripts (first group is 0).
+     * @param target whisper target, or who `$n` refers to
+     */
+    Talk(group: uint8, target?: TSWorldObject) : void
+
+    /**
+     * TSScriptedAI only: whether the creature melees its victim on its own. Default true.
+     */
+    SetAutoMelee(autoMelee: bool) : void
+    GetAutoMelee() : bool
+
+    /**
+     * TSScriptedAI only: despawns everything this creature summoned. Happens automatically on evade.
+     */
+    DespawnSummons() : void
+
+    /**
+     * Whether the creature chases its victim. Only works for scripted AIs (TSScriptedAI or core C++ scripts).
+     */
+    SetCombatMovement(allowMovement: bool) : void
+
+    /**
      * Returns `true` if the [Creature]'s rank is Elite or Rare Elite,
      *   and returns `false` otherwise.
      *
@@ -4982,6 +5011,10 @@ declare interface TSInstance extends TSMap {
     SetInstanceData64(id: uint32, data: uint64): void;
     GetInstanceGUIDData(id: uint32): TSGUID;
     SetInstanceGUIDData(id: uint32, data: TSGUID): void;
+    /**
+     * Updates boss health frames for all players. Boss-linked creatures engage/disengage automatically.
+     */
+    SendEncounterUnit(type: EncounterFrameType, unit?: TSUnit, param1?: uint8, param2?: uint8): void;
 }
 
 declare interface TSGameObject extends TSWorldObject {
@@ -6144,6 +6177,11 @@ declare class TSObject extends TSEntityProvider {
 }
 
 declare interface TSUnit extends TSWorldObject {
+    SetUnitFlag(flags: uint32): void
+    RemoveUnitFlag(flags: uint32): void
+    SetImmuneToPC(apply: bool, keepCombat?: bool): void
+    SetImmuneToNPC(apply: bool, keepCombat?: bool): void
+
     IsNull() : bool
     GetResistance(school: uint32): TSNumber<uint32>
     GetArmor(): TSNumber<uint32>
@@ -8708,6 +8746,13 @@ declare namespace _hidden {
 
         OnReachedHome(callback: (creature: TSCreature)=>void): T;
         OnReachedHome(id: EventID, callback: (creature: TSCreature)=>void): T;
+
+        /**
+         * Fires whenever the creature enters evade mode (wipe, leash, boundary). Timers with
+         * TimerFlags.CLEARS_ON_EVADE are already removed; boss-linked creatures have already set FAIL.
+         */
+        OnEvade(callback: (creature: TSCreature, reason: uint32 /*EvadeReason*/)=>void): T;
+        OnEvade(id: EventID, callback: (creature: TSCreature, reason: uint32 /*EvadeReason*/)=>void): T;
 
         OnReceiveEmote(callback: (receiver: TSCreature, player: TSPlayer, emote: uint32)=>void): T;
         OnReceiveEmote(id: EventID, callback: (receiver: TSCreature, player: TSPlayer, emote: uint32)=>void): T;

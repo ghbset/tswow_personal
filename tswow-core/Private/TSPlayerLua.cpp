@@ -293,6 +293,10 @@ void TSLua::load_player_methods(sol::state& state)
     LUA_FIELD_OVERLOAD_1_1(ts_player, TSPlayer, RemoveItem, TSItem, uint32);
     LUA_FIELD_OVERLOAD_1_1(ts_player, TSPlayer, RemoveItemByEntry, uint32, uint32);
     LUA_FIELD(ts_player, TSPlayer, SendBroadcastMessage);
+    ts_player.set_function("SendPacketPlayer", sol::overload(
+          [](TSPlayer& player, std::shared_ptr<TSWorldPacket> data, bool selfOnly) { player.SendPacketPlayer(data, selfOnly); }
+        , [](TSPlayer& player, TSWorldPacket data, bool selfOnly) { player.SendPacketPlayer(data, selfOnly); }
+    ));
     LUA_FIELD(ts_player, TSPlayer, SendAreaTriggerMessage);
     LUA_FIELD(ts_player, TSPlayer, SendNotification);
     LUA_FIELD(ts_player, TSPlayer, SendAddonMessage);

@@ -32,6 +32,11 @@ void TSLua::load_creature_methods(sol::state & state)
     LUA_FIELD(ts_creature, TSCreature, CanSwim);
     LUA_FIELD(ts_creature, TSCreature, CanWalk);
     LUA_FIELD(ts_creature, TSCreature, IsInEvadeMode);
+    LUA_FIELD(ts_creature, TSCreature, EnterEvadeMode);
+    LUA_FIELD(ts_creature, TSCreature, SetAutoMelee);
+    LUA_FIELD(ts_creature, TSCreature, GetAutoMelee);
+    LUA_FIELD(ts_creature, TSCreature, DespawnSummons);
+    LUA_FIELD_OVERLOAD_1_1(ts_creature, TSCreature, Talk, uint8, TSWorldObject);
     LUA_FIELD(ts_creature, TSCreature, IsElite);
     LUA_FIELD(ts_creature, TSCreature, IsGuard);
     LUA_FIELD(ts_creature, TSCreature, IsCivilian);

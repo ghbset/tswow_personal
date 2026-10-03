@@ -59,7 +59,7 @@ const temp_config = (dataset: Dataset) => ({
     'forceConsistentCasingInFileNames': true
 },
     'include': ['./shared','./livescripts'],
-    'exclude': ['./livescripts/build/lib']
+    'exclude': ['./livescripts/build']
 });
 
 export class LiveScriptsConfig extends ConfigFile {
@@ -110,7 +110,7 @@ const lua_tsconfig_json = {
             }
         ]
     },
-    "exclude": ["./livescripts/build/lib"]
+    "exclude": ["./livescripts/build"]
 }
 
 export class Livescripts {

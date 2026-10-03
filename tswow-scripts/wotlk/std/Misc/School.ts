@@ -27,7 +27,7 @@ export enum SchoolTypes {
 }
 
 export enum SchoolMask {
-    PHYSICAL = 0x0,
+    PHYSICAL = 0x1,
     HOLY     = 0x2,
     FIRE     = 0x4,
     NATURE   = 0x8,

@@ -12,6 +12,7 @@ enum class TimerFlags: uint32 {
     CLEARS_ON_MAP_CHANGED = 0x2,
     AGGREGATE_LOOPS       = 0x4,
 //  SYNCHRONIZED          = 0x8,
+    CLEARS_ON_EVADE       = 0x10,
 };
 
 enum class TimerLoops {
@@ -229,36 +230,16 @@ public:
         m_timers.push_back(TSTimer<T>(name, time, repeats, flags, callback));
     }
 
-    void remove_on_death()
-    {
-        TSWOW_LUA_GUARD
-        for (auto itr = m_timers.begin(); itr != m_timers.end();)
-        {
-            if (uint32(itr->GetFlags()) & uint32(TimerFlags::CLEARS_ON_DEATH))
-            {
-                if (m_ticking)
-                {
-                    itr->m_deleted = true;
-                    itr++;
-                }
-                else
-                {
-                    m_timers.erase(itr);
-                }
-            }
-            else
-            {
-                itr++;
-            }
-        }
-    }
+    void remove_on_death() { remove_flagged(TimerFlags::CLEARS_ON_DEATH); }
+    void remove_on_map_change() { remove_flagged(TimerFlags::CLEARS_ON_MAP_CHANGED); }
+    void remove_on_evade() { remove_flagged(TimerFlags::CLEARS_ON_EVADE); }
 
-    void remove_on_map_change()
+    void remove_flagged(TimerFlags flag)
     {
         TSWOW_LUA_GUARD
         for (auto itr = m_timers.begin(); itr != m_timers.end();)
         {
-            if (uint32(itr->GetFlags()) & uint32(TimerFlags::CLEARS_ON_MAP_CHANGED))
+            if (uint32(itr->GetFlags()) & uint32(flag))
             {
                 if (m_ticking)
                 {

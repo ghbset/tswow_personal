@@ -154,6 +154,13 @@ public:
     TSNumber<uint32> GetFirstSpell();
     void DoSpellAttackIfReady(uint32 spell);
 
+    // boss api
+    void Talk(uint8 group, TSWorldObject target = TSWorldObject(nullptr));
+    void EnterEvadeMode();
+    void SetAutoMelee(bool autoMelee);
+    bool GetAutoMelee();
+    void DespawnSummons();
+
 private:
     TSLua::Array<TSUnit> LGetThreatList();
     friend class TSLua;

@@ -127,6 +127,16 @@ export class DatasetConfig extends ConfigFile {
     EmulatorCore: EmulatorCore = this.undefined()
 
     @Property({
+          name: 'Client.Targets'
+        , description:
+              'Which client(s) `package client` publishes for. Omit for 3.3.5a only.'
+        , examples: [
+              [['3.3.5a'],'Stock behaviour: MPQ patches for a 3.3.5a client']
+        ]
+    })
+    ClientTargets: string[] = this.undefined()
+
+    @Property({
           name: 'Package.Mapping'
         , description: ''
         , examples: [

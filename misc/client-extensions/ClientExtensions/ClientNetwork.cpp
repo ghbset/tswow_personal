@@ -128,7 +128,8 @@ public:
         LOG_DEBUG << "Client receive full packet with opcode" << value->Opcode();
         curRead = value;
         ClientLua::DoString(
-              ("__FireCustomPacket(" + std::to_string(value->Opcode()) + ")").c_str()
+              // glue screens never run the embedded lua, so the handler may not exist yet
+              ("if __FireCustomPacket then __FireCustomPacket(" + std::to_string(value->Opcode()) + ") end").c_str()
             , ClientLua::State()
         );
         curRead = nullptr;

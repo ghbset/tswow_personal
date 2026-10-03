@@ -48,6 +48,7 @@ void TSLua::load_instance_methods(sol::state& state)
     LUA_FIELD(ts_instance, TSInstance, GetBossInfo);
     LUA_FIELD(ts_instance, TSInstance, DoSendNotify);
     LUA_FIELD_OVERLOAD_1_2(ts_instance, TSInstance, DoCastSpellOnPlayers, uint32, bool, bool);
+    LUA_FIELD_OVERLOAD_1_3(ts_instance, TSInstance, SendEncounterUnit, uint32, TSUnit, uint8, uint8);
     LUA_FIELD_OVERLOAD_1_2(ts_instance, TSInstance, DoUseDoorOrButton, TSGUID, uint32, bool);
     LUA_FIELD_OVERLOAD_1_2(ts_instance, TSInstance, DoRemoveAurasDueToSpellOnPlayers, uint32, bool, bool);
 }

@@ -40,6 +40,7 @@
 #include "CreatureOutfit.h"
 #endif
 #include "SmartAI.h"
+#include "TSScriptedAI.h"
 
 TSCreature::TSCreature(Creature *creature) : TSUnit(creature)
 {
@@ -1429,3 +1430,44 @@ void TSCreature::DoSpellAttackIfReady(uint32 spell)
         ai->DoSpellAttackIfReady(spell);
 }
 // @duskhaven-port-end TSCreature
+
+/**
+ * Says a creature_text group (as authored with CreatureTemplate.Texts in datascripts).
+ * @param target whisper target, or used for $n in the text
+ */
+void TSCreature::Talk(uint8 group, TSWorldObject target)
+{
+    if (creature->IsAIEnabled())
+        creature->AI()->Talk(group, target.obj);
+}
+
+void TSCreature::EnterEvadeMode()
+{
+    if (creature->IsAIEnabled())
+        creature->AI()->EnterEvadeMode(CreatureAI::EVADE_REASON_OTHER);
+}
+
+/**
+ * TSScriptedAI only: whether the creature swings at its victim on its own. Default true.
+ */
+void TSCreature::SetAutoMelee(bool autoMelee)
+{
+    if (TSScriptedAI* ai = dynamic_cast<TSScriptedAI*>(creature->AI()))
+        ai->SetAutoMelee(autoMelee);
+}
+
+bool TSCreature::GetAutoMelee()
+{
+    if (TSScriptedAI* ai = dynamic_cast<TSScriptedAI*>(creature->AI()))
+        return ai->GetAutoMelee();
+    return false;
+}
+
+/**
+ * TSScriptedAI only: despawns everything this creature has summoned. Done automatically on evade.
+ */
+void TSCreature::DespawnSummons()
+{
+    if (TSScriptedAI* ai = dynamic_cast<TSScriptedAI*>(creature->AI()))
+        ai->summons.DespawnAll();
+}

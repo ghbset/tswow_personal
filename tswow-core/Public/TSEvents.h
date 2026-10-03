@@ -639,6 +639,7 @@ struct TSEvents
         ID_EVENT(OnJustAppeared, TSCreature)
         ID_EVENT(OnCharmed, TSCreature, bool)
         ID_EVENT(OnReachedHome, TSCreature)
+        ID_EVENT(OnEvade, TSCreature, TSNumber<uint32>)
         ID_EVENT(OnReceiveEmote, TSCreature, TSPlayer, TSNumber<uint32>)
         ID_EVENT(OnOwnerAttacked, TSCreature, TSUnit)
         ID_EVENT(OnOwnerAttacks, TSCreature, TSUnit)

@@ -305,6 +305,8 @@ export class CreatureTemplate extends MainEntityID<creature_templateRow> {
     get Vehicle() { return VehicleRegistry.ref(this, this.row.VehicleId); }
     get Gold() { return new CreatureGold(this); }
     get AIName() { return new CreatureAI(this); }
+    /** Core C++ script name. Ignored when AIName is TSScriptedAI. */
+    get ScriptName() { return this.wrap(this.row.ScriptName); }
     get MovementType() {
         return makeEnumCell(CreatureMovementType,this, this.row.MovementType);
     }

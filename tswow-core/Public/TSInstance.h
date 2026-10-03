@@ -82,6 +82,8 @@ public:
     void SetInstanceGUIDData(uint32 id, TSGUID data);
     // @duskhaven-port
     void HandleGameObject(uint32 spawnId, bool open);
+    // boss api
+    void SendEncounterUnit(uint32 type, TSUnit unit = TSUnit(nullptr), uint8 param1 = 0, uint8 param2 = 0);
 };
 
 LUA_PTR_TYPE(TSGUIDSet)

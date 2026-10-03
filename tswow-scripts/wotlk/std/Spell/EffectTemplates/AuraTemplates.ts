@@ -1128,3 +1128,27 @@ export class PreventResurrection extends TargetBase {}
 // 315
 export class UnderwaterWalking extends TargetBase {}
 // 316
+
+// 317-320: forever_talents core auras (modern TC 270 / 271 / 308 / 332 behaviour on 3.3.5a)
+// 317
+export class ModSchoolMaskDamageFromCaster extends PercentBase {
+    /** Schools of the caster's spells that deal more damage to the aura target. */
+    get Schools() {
+        return makeMaskCell32(SchoolMask,this, this.owner.MiscValueA);
+    }
+}
+// 318 (affected spells: effect ClassMask)
+export class ModSpellDamageFromCaster extends PercentBase {}
+// 319 (affected spells: effect ClassMask)
+export class ModCritChanceForCasterWithAbilities extends PercentBase {}
+// 320
+export class OverrideSpell extends TargetBase {
+    /** Spell the player casts (from their spellbook). */
+    get OriginalSpell() { return this.wrap(this.owner.MiscValueA); }
+    /** Spell cast instead. Stored as BasePoints with DieSides 0 so the aura amount is exactly this id. */
+    setReplacement(spellId: number) {
+        this.owner.PointsBase.set(spellId);
+        this.owner.PointsDieSides.set(0);
+        return this;
+    }
+}

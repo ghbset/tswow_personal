@@ -36,6 +36,11 @@ export class CreatureAI extends CellSystem<CreatureTemplate> {
     TotemAI() { return this.set("TotemAI"); }
     EventAI() { return this.set("EventAI"); }
     SmartAI() { return this.set("SmartAI"); }
+    /**
+     * Livescript-driven AI (boss api). Takes priority over ScriptName, so it
+     * replaces core C++ scripts on existing creatures.
+     */
+    TSScriptedAI() { return this.set("TSScriptedAI"); }
 
     objectify(options?: ObjectifyOptions) { return this.get(); }
 }

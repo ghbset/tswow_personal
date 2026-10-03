@@ -33,5 +33,10 @@ void CharacterFixes::SetNewRaceNamePointerTable()
     for (uint8_t i = 22; i < 32; i++)
         raceNameTable[i] = reinterpret_cast<uint32_t>(&dummy);
 
+    // Custom race: slot 12 (stock "FelOrc") is the playable High Elf. Repoint it
+    // at the "HighElf" asset folder so character body textures load from
+    // Character\HighElf\ instead of the green Fel Orc set.
+    raceNameTable[12] = reinterpret_cast<uint32_t>(highElfName);
+
     return;
 }
