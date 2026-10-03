@@ -23,6 +23,8 @@ public:
         , std::string const& filename
         , size_t lineno
  );
+    /// Whether `len` bytes at `addr` equal `stock`; logs a warning naming `what` when they do not.
+    static bool IsStock(char const* what, void const* addr, unsigned char const* stock, size_t len);
 private:
     static void Apply();
     ClientDetours() {};

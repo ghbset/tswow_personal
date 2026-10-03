@@ -35,6 +35,8 @@ SET(CLIENT_EXTENSIONS_H
     Characters/CharacterFixes.h
     Tooltip/TooltipDefines.h
     Tooltip/SpellTooltipExtensions.h
+    ClientSettings.h
+    Gameplay/GameplayMath.h
 )
 
 SET(CLIENT_EXTENSIONS_CPP
@@ -52,6 +54,9 @@ SET(CLIENT_EXTENSIONS_CPP
     CustomLua/SpellFunctions.cpp
     Tooltip/SpellTooltipExtensions.cpp
     CMapOverrides.cpp
+    ClientSettings.cpp
+    Gameplay/SpellQueue.cpp
+    Gameplay/SmoothTurn.cpp
 )
 
 SET(CLIENT_EXTENSIONS_LUA

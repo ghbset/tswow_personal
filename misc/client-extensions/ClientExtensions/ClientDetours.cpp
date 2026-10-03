@@ -30,6 +30,13 @@ int ClientDetours::Add(
     return 0;
 }
 
+bool ClientDetours::IsStock(char const* what, void const* addr, unsigned char const* stock, size_t len)
+{
+    if (memcmp(addr, stock, len) == 0) return true;
+    LOG_WARN << what << "@" << addr << ": client code is not stock (already patched by something else) -- skipped";
+    return false;
+}
+
 void ClientDetours::Apply()
 {
     DetourTransactionBegin();
