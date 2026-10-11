@@ -47,7 +47,7 @@ void CustomPacketChunk::Increase(chunkSize_t size)
         m_chunk = new char[m_size + size + CustomHeaderSize];
         memcpy(m_chunk, old, m_size + CustomHeaderSize);
         m_size = m_size + size;
-        delete old;
+        delete[] old;
     }
 }
 

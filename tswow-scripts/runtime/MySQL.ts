@@ -77,7 +77,7 @@ export class Connection {
         return new Promise<any>((res,rej)=>{
             (this.con as mysql_lib.Pool).query(query,(err,value)=>{
                 if(err) {
-                    rej(`${err.code}: ${err.message} (for query ${query})`);
+                    rej(`${err.code}: ${err.message} (for query ${query.slice(0,500)})`);
                 } else {
                     res(value);
                 }
@@ -392,12 +392,25 @@ export namespace mysql {
             if(applied.length === 0) {
                 term.log('mysql',`Applying SQL update ${bn}`)
                 ++total;
-                await cons.query(
-                        `START TRANSACTION;`
-                    + `${wfs.read(file)}`
-                    + `INSERT INTO updates (name,hash,speed) VALUES ("${bn}","tswow",0);`
-                    + `COMMIT;`
-                )
+                const sql = `START TRANSACTION;\n`
+                    + wfs.read(file)
+                    + `\nINSERT INTO updates (name,hash,speed) VALUES (${mysql_lib.escape(bn)},"tswow",0);\n`
+                    + `COMMIT;`;
+                const packetSettings = await cons.query('SELECT @@max_allowed_packet AS packetLimit');
+                const packetLimit = Number(packetSettings[0].packetLimit);
+                const requiredBytes = Buffer.byteLength(sql, 'utf8') + 1;
+                if (requiredBytes > packetLimit) {
+                    throw new Error(
+                        `Cannot apply ${bn} to ${cons.name()}: SQL update requires ${requiredBytes} bytes, `
+                        + `but MariaDB max_allowed_packet is ${packetLimit}. `
+                        + `Increase the server limit above the required size and restart TSWoW.`
+                    );
+                }
+                try {
+                    await cons.query(sql);
+                } catch (error) {
+                    throw new Error(`SQL update ${bn} failed for ${cons.name()}: ${error.message || error}`);
+                }
             }
         }
         return total;

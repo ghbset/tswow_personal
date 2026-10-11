@@ -1,4 +1,5 @@
 #include "TSLua.h"
+#include "TSBoss.h"
 #include "Config.h"
 #include "TSWorldObject.h"
 #include "TSGlobal.h"
@@ -180,6 +181,7 @@ void TSLua::load_bindings(sol::state& ztate)
     load_global_functions(state);
     load_mutex_functions(state);
     load_events(state);
+    TSBosses::LoadLua(state);
     load_lua_libraries(state);
 }
 
@@ -382,6 +384,7 @@ void TSLua::Load()
     }
 
     modules.clear();
+    TSBosses::Clear();
     state = sol::state();
     already_errored = false;
 

@@ -48,7 +48,11 @@ CustomPacketResult CustomPacketBuffer::ReceivePacket(chunkSize_t size, char* dat
         AppendFragment(chnk, true);
         // @duskhaven-port: caller wants to inspect opcode before firing
         if (skipSuccess)
+        {
+            // own the last chunk too: clearPacket() used to delete[] the caller's packet data
+            m_cur.m_chunks.back().Copy();
             return CustomPacketResult::HANDLED_MESSAGE;
+        }
         return _onSuccess();
     default:
         if (m_cur.ChunkCount() == 0)
@@ -86,7 +90,11 @@ CustomPacketResult CustomPacketBuffer::ReceivePacket(chunkSize_t size, char* dat
             AppendFragment(chnk, true);
             // @duskhaven-port
             if (skipSuccess)
+            {
+                // own the last chunk too: clearPacket() used to delete[] the caller's packet data
+                m_cur.m_chunks.back().Copy();
                 return CustomPacketResult::HANDLED_MESSAGE;
+            }
             return _onSuccess();
         }
         else
@@ -125,7 +133,11 @@ CustomPacketResult CustomPacketBuffer::_onSuccess()
 // @duskhaven-port
 CustomPacketResult CustomPacketBuffer::callOnSuccess()
 {
-    return _onSuccess();
+    // the last chunk is our own copy here (see skipSuccess), _onSuccess leaves it alone
+    CustomPacketChunk last = m_cur.m_chunks.back();
+    CustomPacketResult res = _onSuccess();
+    last.Destroy();
+    return res;
 }
 
 void CustomPacketBuffer::clearPacket()

@@ -1447,6 +1447,34 @@ void TSCreature::EnterEvadeMode()
         creature->AI()->EnterEvadeMode(CreatureAI::EVADE_REASON_OTHER);
 }
 
+/** Sends a script-defined action number to the creature's AI. TSScriptedAI fires OnDoAction. */
+void TSCreature::DoAction(int32 action)
+{
+    if (creature->IsAIEnabled())
+        creature->AI()->DoAction(action);
+}
+
+/** Sends a script-defined id/value pair to the creature's AI. TSScriptedAI fires OnSetData. */
+void TSCreature::SetData(uint32 id, uint32 value)
+{
+    if (creature->IsAIEnabled())
+        creature->AI()->SetData(id, value);
+}
+
+/** Boss framework: whether the creature is currently down from Boss.FakeDeath(). */
+bool TSCreature::IsFakeDead()
+{
+    TSScriptedAI* ai = dynamic_cast<TSScriptedAI*>(creature->AI());
+    return ai && ai->IsFakeDead();
+}
+
+/** Boss framework: gets a creature that is down from Boss.FakeDeath() back up. */
+void TSCreature::ReviveFakeDeath()
+{
+    if (TSScriptedAI* ai = dynamic_cast<TSScriptedAI*>(creature->AI()))
+        ai->ReviveFakeDeath();
+}
+
 /**
  * TSScriptedAI only: whether the creature swings at its victim on its own. Default true.
  */

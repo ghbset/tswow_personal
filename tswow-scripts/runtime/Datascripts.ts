@@ -186,7 +186,7 @@ export class Datascripts {
             term.debug('datascripts', `Compiling datascripts at ${this.path.abs().get()}`)
             wsys.execIn(
                 this.path.dirname().get()
-                , `${NpxExecutable} swc datascripts -d datascripts/build --sync`,'inherit'
+                , `${NpxExecutable} swc datascripts -d datascripts/build --sync --delete-dir-on-start`,'inherit'
             )
         } catch(err) {
             this.path.swcrc.remove();

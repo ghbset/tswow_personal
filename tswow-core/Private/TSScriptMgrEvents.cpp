@@ -15,6 +15,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include "TSLua.h"
+#include "TSBoss.h"
 #include "TSExtraTooltip.h"
 #include "TSEvents.h"
 #include "TSMutable.h"
@@ -74,6 +75,7 @@ class TSUnitScript : public UnitScript
 public:
     TSUnitScript() : UnitScript("TSUnitScript"){}
     void OnHeal(Unit* healer, Unit* reciever, uint32& gain) {
+        TSBossRuntime::HealingDone(healer, reciever, gain);
         FIRE(Unit,OnCalcHeal
             , TSUnit(healer)
             , TSUnit(reciever)

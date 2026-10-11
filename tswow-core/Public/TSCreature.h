@@ -158,6 +158,10 @@ public:
     void Talk(uint8 group, TSWorldObject target = TSWorldObject(nullptr));
     void EnterEvadeMode();
     void SetAutoMelee(bool autoMelee);
+    void DoAction(int32 action);
+    void SetData(uint32 id, uint32 value);
+    bool IsFakeDead();
+    void ReviveFakeDeath();
     bool GetAutoMelee();
     void DespawnSummons();
 

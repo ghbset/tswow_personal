@@ -22,7 +22,16 @@ import { term } from './Terminal';
 import { termCustom } from "./TerminalCategories";
 
 const processes : {[key: number]: ChildProcessWithoutNullStreams} = {};
-function cleanup() {
+// Every time this console stops or loses a child process, say why in /root/ws_crash_logs/console_stops.log
+// (the realm used to vanish with nothing but a "KeyboardInterrupt" from gdb in the console).
+function logStop(what: string, detail?: any) {
+    try {
+        require('fs').appendFileSync('/root/ws_crash_logs/console_stops.log',
+            `${new Date().toISOString()} ${what} ${detail && detail.stack ? detail.stack : (detail === undefined ? '' : String(detail))}\n`);
+    } catch (e) {}
+}
+function cleanup(why?: any) {
+    logStop('cleanup: console is terminating all child processes, cause:', why);
     for(const proc of Object.values(processes)) {
         proc.kill('SIGTERM');
     }
@@ -184,6 +193,7 @@ export class Process {
             return;
         }
 
+        logStop(`stop() called for ${this._name} pid ${this._process.pid}, by:`, new Error('caller'));
         this._process.kill();
         this._isStopping = true;
         return this._stopPromise;
@@ -238,7 +248,8 @@ export class Process {
                 onDestroyed();
                 this.postFail();
             });
-            proc.on('exit', (code) => {
+            proc.on('exit', (code: any, signal: any) => {
+                logStop(`child ${this._name} pid ${proc.pid} exited`, `code=${code} signal=${signal}`);
                 let failed = code !== 0 && code !== null
                 if(failed) {
                     this.fail(new Error('Process error code '+code))

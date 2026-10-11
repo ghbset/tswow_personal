@@ -1,4 +1,5 @@
 #include "TSLua.h"
+#include "TSLuaVarargs.h"
 #include "TSAura.h"
 #include "TSGUID.h"
 
@@ -50,6 +51,7 @@ void TSLua::load_aura_methods(sol::state& state)
     LUA_FIELD(ts_aura, TSAura, SetMaxDuration);
     LUA_FIELD(ts_aura, TSAura, SetStackAmount);
     LUA_FIELD(ts_aura, TSAura, Remove);
+    LUA_FIELD_OVERLOAD_RET_1_2(ts_aura, TSAura, ModStackAmount, int32, uint8, bool);
     LUA_FIELD(ts_aura, TSAura, GetEffect);
     ts_aura.set_function("GetApplications", &TSAura::LGetApplications);
 

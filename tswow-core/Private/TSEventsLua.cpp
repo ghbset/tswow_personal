@@ -306,6 +306,9 @@ void TSLua::load_events(sol::state& state)
     LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnCharmed);
     LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnReachedHome);
     LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnEvade);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnDamageTakenEarly);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnDoAction);
+    LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnSetData);
     LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnReceiveEmote);
     LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnOwnerAttacked);
     LUA_MAPPED_HANDLE(creature_events, CreatureEvents, OnOwnerAttacks);

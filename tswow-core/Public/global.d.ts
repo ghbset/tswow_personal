@@ -2909,6 +2909,18 @@ declare interface TSCreature extends TSUnit {
      * TSScriptedAI only: whether the creature melees its victim on its own. Default true.
      */
     SetAutoMelee(autoMelee: bool) : void
+
+    /** Sends a script-defined action number to this creature's AI (TSScriptedAI fires OnDoAction). */
+    DoAction(action: int32) : void
+
+    /** Sends a script-defined id/value pair to this creature's AI (TSScriptedAI fires OnSetData). */
+    SetData(id: uint32, value: uint32) : void
+
+    /** Boss framework: whether the creature is down from Boss.FakeDeath(). */
+    IsFakeDead() : bool
+
+    /** Boss framework: gets a creature that is down from Boss.FakeDeath() back up. */
+    ReviveFakeDeath() : void
     GetAutoMelee() : bool
 
     /**
@@ -3579,6 +3591,16 @@ declare interface TSAura extends TSEntityProvider {
      * Remove this [Aura] from the [Unit] it is applied to.
      */
     Remove() : void
+
+    /**
+     * Adds (or, with a negative number, removes) stacks of this [Aura].
+     *
+     * @param amount : stacks to add; negative removes
+     * @param removeMode : AuraRemoveMode used if the last stack goes (default 0)
+     * @param resetTimer : restart the duration (default true)
+     * @returns true if the aura was removed because it ran out of stacks
+     */
+    ModStackAmount(amount : int32, removeMode? : uint8, resetTimer? : bool) : bool
 }
 
 declare interface TSAuraEffect extends TSEntityProvider {
@@ -8753,6 +8775,15 @@ declare namespace _hidden {
          */
         OnEvade(callback: (creature: TSCreature, reason: uint32 /*EvadeReason*/)=>void): T;
         OnEvade(id: EventID, callback: (creature: TSCreature, reason: uint32 /*EvadeReason*/)=>void): T;
+        /** Before the damage is applied and before the kill check: the amount can be changed or set to 0. */
+        OnDamageTakenEarly(callback: (creature: TSCreature, attacker: TSUnit | undefined, damage: TSMutableNumber<uint32>)=>void): T;
+        OnDamageTakenEarly(id: EventID, callback: (creature: TSCreature, attacker: TSUnit | undefined, damage: TSMutableNumber<uint32>)=>void): T;
+        /** TSScriptedAI only: another script called creature.DoAction(action). */
+        OnDoAction(callback: (creature: TSCreature, action: int32)=>void): T;
+        OnDoAction(id: EventID, callback: (creature: TSCreature, action: int32)=>void): T;
+        /** TSScriptedAI only: another script called creature.SetData(id, value). */
+        OnSetData(callback: (creature: TSCreature, id: uint32, value: uint32)=>void): T;
+        OnSetData(id: EventID, callback: (creature: TSCreature, id: uint32, value: uint32)=>void): T;
 
         OnReceiveEmote(callback: (receiver: TSCreature, player: TSPlayer, emote: uint32)=>void): T;
         OnReceiveEmote(id: EventID, callback: (receiver: TSCreature, player: TSPlayer, emote: uint32)=>void): T;
@@ -9369,6 +9400,7 @@ declare namespace _hidden {
         )
         // @duskhaven-port-begin
         OnReceiveNotInWorld(callback: (opcode : TSNumber<uint32>, packetRead : TSPacketRead, accountID : TSNumber<uint32>)=>void);
+        OnReceiveNotInWorld(id: EventID, callback: (opcode : TSNumber<uint32>, packetRead : TSPacketRead, accountID : TSNumber<uint32>)=>void);
         // @duskhaven-port-end
     }
 
@@ -10438,3 +10470,340 @@ declare type ZoneCategory = uint32;
 declare function TS_ZONE_CATEGORY(color: uint32): ZoneCategory
 declare function TS_ZONE_SCOPED(cat: ZoneCategory): void
 declare function TS_ZONE_SCOPED_N(cat: ZoneCategory): void
+
+// TSBoss.h: boss framework. Needs AIName TSScriptedAI on the creature
+// (std: template.AIName.TSScriptedAI()). Times are milliseconds.
+/**
+ * A wave through gameobjects placed in the room (lava fissures, floor tiles, braziers).
+ * Every matching object within StartWithin() of the boss goes off first, then every Step()
+ * it moves on to the matching objects within Reach() of the ones that just went off, until
+ * none are left: it spreads outward from where the boss stands.
+ * Each object plays its animation and, if it is a trap, casts its trap spell.
+ * Pick the objects with at least one of Entries, Named or TrapSpell.
+ */
+declare interface TSBossObjectWave {
+    Entries(...entries: uint32[]): TSBossObjectWave
+    /** Gameobject template name. */
+    Named(name: string): TSBossObjectWave
+    /** Trap gameobjects whose trap spell is this one. */
+    TrapSpell(spell: uint32): TSBossObjectWave
+    /** Objects this close to the boss go off first. Default 15 yards. Nothing that close: no wave. */
+    StartWithin(yards: float): TSBossObjectWave
+    /** How far the wave jumps from one object to the next. Default 15 yards. */
+    Reach(yards: float): TSBossObjectWave
+    /** Time before the first object goes off. Default 0. */
+    Delay(ms: uint32): TSBossObjectWave
+    /** Time between one ring of objects and the next. Default 1000. */
+    Step(ms: uint32): TSBossObjectWave
+}
+
+declare namespace Bosses {
+    /** Starts the definition of the boss with this creature entry. Call once, at script load. */
+    function Create(entry: uint32): TSBoss
+    /** Makes these bosses one encounter: they pull and reset together. Members must stay within 300 yards. */
+    function Link(...bosses: TSBoss[]): TSBossLink
+}
+
+/** What Selector.SortBy orders by. Smallest comes first. */
+declare const enum BossSort {
+    /** Distance from the boss: closest first. */
+    DISTANCE = 1,
+    /** Threat on the boss: lowest first. */
+    THREAT = 2,
+    /** Current health: lowest first. */
+    HEALTH = 3,
+    /** Health percent: lowest first. */
+    HEALTH_PCT = 4,
+    /** Damage done to the boss this fight (pets count for their owner): lowest first. */
+    DPS = 5,
+    MAX_HEALTH = 6,
+    /** Current amount of the unit's own power type (mana, rage, energy...). */
+    POWER = 7,
+    POWER_PCT = 8,
+    LEVEL = 9,
+    /** Average equipped item level. Players only; creatures count as 0. */
+    ITEM_LEVEL = 10,
+    /** Model scale: smallest first (gnomes, shrunk players). */
+    SIZE = 11,
+    /** Total time played on the character. Players only. */
+    TIME_PLAYED = 12,
+    ARMOR = 13,
+    /** How many others of the same group stand within 8 yards: most isolated first, most stacked last. */
+    NEARBY_ALLIES = 14,
+    /** Effective healing done this fight to anyone fighting the boss, overhealing not counted (pets and totems count for their owner): lowest first. */
+    HEALING = 15,
+}
+
+/**
+ * Who an ability hits. Lazy: worked out again every time it is used.
+ * Start from a group (Boss.GetEnemies / GetRaid / GetFriendlyCreatures), narrow it with
+ * filters and roles, optionally SortBy, then pick (First, Last, Nth, Random, All).
+ */
+declare interface TSBossSelector {
+    /** Whoever the boss is attacking right now. */
+    MainTank(): TSBossSelector
+    /** Tank-spec players the boss is not attacking. */
+    OffTanks(): TSBossSelector
+    /** The main tank plus the off tanks. */
+    Tanks(): TSBossSelector
+    /**
+     * Roles are guessed from class and the talent tree with most points
+     * (plus bear form and frost presence). Players only.
+     */
+    Healers(): TSBossSelector
+    MeleeDps(): TSBossSelector
+    RangedDps(): TSBossSelector
+
+    /** Orders the group, smallest first. Follow with First, Last or Nth. */
+    SortBy(key: BossSort): TSBossSelector
+    /** The first one (or `count`) after SortBy: closest, lowest health, lowest dps... */
+    First(count?: uint32): TSBossSelector
+    /** The last one (or `count`) after SortBy: farthest, highest health, top dps... */
+    Last(count?: uint32): TSBossSelector
+    /** The one at this place after SortBy, counting from 1. Past the end gives the last one. */
+    Nth(index: uint32): TSBossSelector
+
+    /** Skips the current victim. If nobody else is left, the tank is hit after all. */
+    ExcludeTank(): TSBossSelector
+    Players(): TSBossSelector
+    /** Outside melee range. */
+    Ranged(): TSBossSelector
+    Melee(): TSBossSelector
+    /**
+     * Has the aura. This is how one mechanic follows up on another: the first casts a
+     * marker aura, the second targets GetRaid().With(marker) or .Without(marker).
+     */
+    With(aura: uint32): TSBossSelector
+    Without(aura: uint32): TSBossSelector
+    OfClass(...classes: uint32[]): TSBossSelector
+    /** Distance from the boss, in yards. */
+    Between(minDist: float, maxDist: float): TSBossSelector
+    Where(filter: (boss: TSCreature, unit: TSUnit) => bool): TSBossSelector
+    OfRace(...races: uint32[]): TSBossSelector
+    /** 0 male, 1 female. */
+    OfGender(gender: uint32): TSBossSelector
+    /** Creatures with one of these entries. */
+    OfEntry(...entries: uint32[]): TSBossSelector
+    ManaUsers(): TSBossSelector
+    /** Units whose power bar is this type (0 mana, 1 rage, 3 energy, 6 runic power). */
+    WithPowerType(powerType: uint32): TSBossSelector
+    /** In front of the boss. The arc is the full width in degrees, default 180. */
+    InFront(arcDegrees?: float): TSBossSelector
+    Behind(arcDegrees?: float): TSBossSelector
+    InLineOfSight(): TSBossSelector
+    /** At most this far from the boss. */
+    Within(dist: float): TSBossSelector
+    /** Farther than this from the boss (charge and leap targets). */
+    Beyond(dist: float): TSBossSelector
+    /** Above this world height (on a platform, in the air). */
+    AboveZ(z: float): TSBossSelector
+    BelowZ(z: float): TSBossSelector
+    Moving(): TSBossSelector
+    Standing(): TSBossSelector
+    /** Casting or channelling a spell right now. */
+    Casting(): TSBossSelector
+    InWater(): TSBossSelector
+    Mounted(): TSBossSelector
+    HealthBelow(pct: float): TSBossSelector
+    HealthAbove(pct: float): TSBossSelector
+    /** Raid group 1 to 8. */
+    InSubGroup(group: uint32): TSBossSelector
+    /** Drops pets, guardians and totems. */
+    ExcludePets(): TSBossSelector
+    /** Looking towards the boss (gaze attacks). */
+    FacingBoss(): TSBossSelector
+    FacingAway(): TSBossSelector
+    /** On the boss's own left or right side (half-room cleaves). */
+    OnLeft(): TSBossSelector
+    OnRight(): TSBossSelector
+    /** Tanks and healers. */
+    Supports(): TSBossSelector
+    /** Melee and ranged damage dealers. */
+    Dps(): TSBossSelector
+    /** Within `radius` yards of a point (a tower, a puddle, a platform). */
+    Near(pos: TSPosition, radius: float): TSBossSelector
+    /** Goes through everyone who qualifies before picking anyone a second time. */
+    NoRepeats(): TSBossSelector
+    /** Orders by distance to a point instead of to the boss: closest first. */
+    SortByDistanceTo(pos: TSPosition): TSBossSelector
+    /** Orders by time left on an aura: about to expire first, those without it last. */
+    SortByAuraTime(aura: uint32): TSBossSelector
+    /** Orders by stacks of an aura: fewest first. */
+    SortByStacks(aura: uint32): TSBossSelector
+    /** Largest first instead of smallest first. Then First() is the top one and Nth(2) the runner-up. */
+    Reverse(): TSBossSelector
+    /** Second on the threat list: the off-tank in a tank swap. */
+    SecondThreat(): TSBossSelector
+    /** Whoever has the most others within 8 yards. */
+    MostStacked(): TSBossSelector
+    /** Whoever has the fewest others within 8 yards. */
+    MostIsolated(): TSBossSelector
+    /** `count` random tanks, `count` healers and `count` damage dealers (default 1 each). */
+    OnePerRole(count?: uint32): TSBossSelector
+    /** GetRaid only: the dead players instead of the living ones. */
+    Dead(): TSBossSelector
+    /** Never whoever this selector picked the time before, as long as someone else qualifies. */
+    NotLastTarget(): TSBossSelector
+
+    /** Everyone that passed the filters. The default. */
+    All(): TSBossSelector
+    Random(count?: uint32): TSBossSelector
+    HighestThreat(): TSBossSelector
+    Farthest(): TSBossSelector
+    Closest(): TSBossSelector
+}
+
+declare interface TSBossCondition {
+    /** Health(): at or below this percent. */
+    Below(pct: float): TSBossCondition
+    /** Health(): fires again at every step, e.g. Every(25) at 75, 50 and 25. */
+    Every(pct: float): TSBossCondition
+    /** Power(): the boss's own power type reaches this amount. */
+    Reaches(amount: float): TSBossCondition
+    /** Stacks(aura): the aura on the boss reaches this many stacks. */
+    Reach(stacks: float): TSBossCondition
+    /** Adds(): everything the boss summoned is dead (and it summoned at least once). */
+    AllDead(): TSBossCondition
+}
+
+/** Fires once each time its phase is entered (Health().Every: once per step). */
+declare interface TSBossTrigger {
+    GoTo(phase: TSBossPhase): TSBossTrigger
+    Do(callback: (boss: TSCreature) => void): TSBossTrigger
+}
+
+/** Steps run in order, all at once, when a phase is entered or left. */
+declare interface TSBossActions {
+    /** Without a target the boss casts on itself. */
+    Cast(spell: uint32, target?: TSBossSelector): TSBossActions
+    Talk(group: uint8): TSBossActions
+    /** Stops attacking and chasing. Abilities keep firing. */
+    SetPassive(): TSBossActions
+    SetAggressive(): TSBossActions
+    TakeOff(): TSBossActions
+    /** Flies down to the position. The steps after it, and the phase's abilities, wait until she has touched down. */
+    Land(pos: TSPosition): TSBossActions
+    /** Ends the move facing the position's orientation. */
+    MoveTo(pos: TSPosition): TSBossActions
+    Summon(entry: uint32, pos: TSPosition): TSBossActions
+    Do(callback: (boss: TSCreature) => void): TSBossActions
+}
+
+/** One timed thing in a phase: a spell (Ability / Rotate), a summon, or a bare Timer(). */
+declare interface TSBossTimer {
+    /** Repeats at this interval, or a random one between min and max. Also the first delay unless After is set. */
+    Every(min: uint32, max?: uint32): TSBossTimer
+    /** Delay before the first time. Without Every it happens only once. */
+    After(ms: uint32): TSBossTimer
+    /** At most this many times per phase entry. A burst counts as one. */
+    Repeat(times: uint32): TSBossTimer
+    /** Each time it comes up, it fires this many times in a row, this far apart. Every then counts from the end of the burst. */
+    Burst(times: uint32, interval: uint32): TSBossTimer
+    /** Default: the current victim. */
+    Target(selector: TSBossSelector): TSBossTimer
+    /** Called each time it fires; once per target if Target is set. */
+    Do(callback: (boss: TSCreature, target?: TSUnit) => void): TSBossTimer
+    /**
+     * After the cast finishes the boss stands still for this long: no turning, no melee, no other ability.
+     * For spells whose animation carries on after the cast bar ends (breaths, slams).
+     */
+    Recover(ms: uint32): TSBossTimer
+    /** Starts the object wave each time this timer fires. */
+    Triggers(wave: TSBossObjectWave): TSBossTimer
+    /** Rotate only: never the same spell twice in a row. */
+    NoRepeat(): TSBossTimer
+    /** Summon only: where. One add per position, unless Count is set. Default: at the boss. */
+    At(positions: TSArray<TSPosition>): TSBossTimer
+    /** Summon only: this many adds, each at a random At position. */
+    Count(n: uint32): TSBossTimer
+    /** Summon only: the adds attack the whole raid at once. */
+    ZoneInCombat(): TSBossTimer
+}
+
+declare interface TSBossPhase {
+    Ability(spell: uint32): TSBossTimer
+    /** Casts a random one of these each time. */
+    Rotate(...spells: uint32[]): TSBossTimer
+    Timer(): TSBossTimer
+    Summon(entry: uint32): TSBossTimer
+    When(condition: TSBossCondition): TSBossTrigger
+    /** Condition: this long since the current phase began. */
+    Elapsed(ms: uint32): TSBossCondition
+    OnEnter(): TSBossActions
+    OnExit(): TSBossActions
+    /** Also runs the other phase's abilities, timers and summons. Its triggers are not inherited. */
+    Inherit(other: TSBossPhase): TSBossPhase
+    /** Whenever something fires, everything else is pushed back by this much. */
+    DelayAll(ms: uint32): TSBossPhase
+    /** Nothing fires while the boss is casting; it fires once the cast is over. */
+    PauseWhileCasting(): TSBossPhase
+    /** The boss cannot drop below 1 health while in this phase. */
+    Immortal(): TSBossPhase
+}
+
+/**
+ * A killing blow knocks the boss down instead: it lies there, untargetable, at 0 health.
+ * It gets up after ReviveAfter, or when a script calls creature.ReviveFakeDeath().
+ */
+declare interface TSBossFakeDeath {
+    /** How many times per fight it can be knocked down before a killing blow really kills. Default 1. */
+    Times(n: uint32): TSBossFakeDeath
+    ReviveAfter(ms: uint32): TSBossFakeDeath
+    /** Health percent it gets up with. Default 100. */
+    ReviveAt(healthPct: float): TSBossFakeDeath
+    /** Phase to switch to when it gets up. */
+    GoTo(phase: TSBossPhase): TSBossFakeDeath
+    OnFall(): TSBossActions
+    OnRevive(): TSBossActions
+}
+
+declare interface TSBossLink {
+    /** One health pool: every member always shows the same health percent, and they die together. */
+    SharedHealth(): TSBossLink
+    /** Only one member at a time can be damaged. The role moves to a random other member at this interval. */
+    Handoff(min: uint32, max?: uint32): TSBossLink
+    /** If the rest are not dead this long after the first death, the dead ones come back. Members must be world spawns. */
+    AllDieWithin(ms: uint32): TSBossLink
+    /** Only the member that dies last can be looted. */
+    LootFromLastOnly(): TSBossLink
+    /** Runs on the member that just became the damageable one (also at the pull). */
+    OnHandoff(): TSBossActions
+    /** Runs on every surviving member when one dies. */
+    OnMemberDeath(): TSBossActions
+}
+
+/**
+ * A boss definition. The fight starts in the lowest-numbered phase.
+ * Ability, Rotate, Timer, Summon and When called on the boss itself run in every phase.
+ */
+declare interface TSBoss {
+    Phase(index: uint32): TSBossPhase
+    Self(): TSBossSelector
+    /** Everyone hostile on the threat list, players or not. */
+    GetEnemies(): TSBossSelector
+    /** The players in the fight: in an instance, everyone alive in it; elsewhere, the players on the threat list. */
+    GetRaid(): TSBossSelector
+    /** Living creatures within 100 yards that are not hostile to the boss: its adds and allies. */
+    GetFriendlyCreatures(): TSBossSelector
+    Health(): TSBossCondition
+    Power(): TSBossCondition
+    Stacks(aura: uint32): TSBossCondition
+    Adds(): TSBossCondition
+    /** Casts the spell on itself this long after the pull. */
+    Berserk(ms: uint32, spell: uint32): TSBoss
+    /** Auras the fight puts on players (markers, debuffs). They are stripped from everyone in the instance when the boss resets or dies. */
+    RemoveOnReset(...auras: uint32[]): TSBoss
+    /** A wave through gameobjects in the room. Start it from a timer with Triggers(wave). */
+    ObjectWave(): TSBossObjectWave
+    FakeDeath(): TSBossFakeDeath
+    /** Cannot drop below 1 health in any phase; a script has to finish it. */
+    Immortal(): TSBoss
+
+    Ability(spell: uint32): TSBossTimer
+    Rotate(...spells: uint32[]): TSBossTimer
+    Timer(): TSBossTimer
+    Summon(entry: uint32): TSBossTimer
+    When(condition: TSBossCondition): TSBossTrigger
+    DelayAll(ms: uint32): TSBoss
+    PauseWhileCasting(): TSBoss
+}
